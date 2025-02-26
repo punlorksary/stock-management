@@ -8,6 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.8.0/flowbite.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.8.0/flowbite.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
         :root {
             --primary-color: #5D5CDE;
@@ -287,6 +289,67 @@
             align-items: center;
             margin-top: 1rem;
         }
+
+        .tab-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            border-bottom-color: var(--primary-color);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .copy-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            background-color: #e5e7eb;
+            color: #1f2937;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .copy-btn:hover {
+            background-color: #d1d5db;
+        }
+
+        .copy-btn svg {
+            width: 1rem;
+            height: 1rem;
+            margin-right: 0.25rem;
+        }
+
+        .data-input {
+            width: 100%;
+            height: 120px;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 <body>
@@ -421,11 +484,11 @@
                     </button>
                 </div>
                 
-                <button id="generate-qr" class="p-4 rounded-lg shadow-md bg-purple-100 text-purple-800 hover:bg-purple-200 transition flex items-center justify-center">
+                <button id="share-data" class="p-4 rounded-lg shadow-md bg-purple-100 text-purple-800 hover:bg-purple-200 transition flex items-center justify-center">
                     <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd" d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" clip-rule="evenodd"></path>
                     </svg>
-                    Generate QR Code
+                    Share Data
                 </button>
                 
                 <button id="clear-data" class="p-4 rounded-lg shadow-md bg-red-100 text-red-800 hover:bg-red-200 transition flex items-center justify-center">
@@ -446,14 +509,12 @@
         </footer>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script>
         // Constants
         const MAX_LOCALSTORAGE_SIZE = 5 * 1024 * 1024; // 5MB approximate limit
         const IMAGE_QUALITY = 0.7; // JPEG compression quality
         const MAX_IMAGE_DIMENSION = 800; // Maximum width or height for images
         const STORAGE_KEY = 'stockInventory';
-        const SYNC_KEY = 'syncConfig';
         const MAX_RETRIES = 3; // Maximum number of API call retries
 
         // State
@@ -630,15 +691,15 @@
             }
         };
 
-        // Generate QR code
-        const generateQRCode = () => {
+        // Share data with text and QR code
+        const shareData = () => {
             if (inventory.length === 0) {
-                showToast('No inventory data to export', 'warning');
+                showToast('No inventory data to share', 'warning');
                 return;
             }
             
             try {
-                // Create a simplified version of inventory for QR code (without images)
+                // Create a simplified version of inventory for sharing (without images)
                 const simplifiedInventory = inventory.map(item => {
                     return {
                         id: item.id,
@@ -648,27 +709,56 @@
                     };
                 });
 
-                // Convert to JSON string
-                const dataStr = JSON.stringify(simplifiedInventory);
+                // Convert to JSON string and compress
+                const dataJson = JSON.stringify(simplifiedInventory);
+                const compressedData = LZString.compressToBase64(dataJson);
                 
-                // Create modal for QR code display
+                // Create modal for sharing options
                 const overlay = document.createElement('div');
                 overlay.className = 'modal-overlay';
                 
                 overlay.innerHTML = `
                     <div class="modal-content">
-                        <h3 class="text-xl font-semibold mb-2">Inventory QR Code</h3>
-                        <p class="mb-4">Scan this QR code with another device to transfer your inventory data (without images). You can also download this as an image.</p>
+                        <h3 class="text-xl font-semibold mb-2">Share Inventory Data</h3>
+                        <p class="mb-4">Here are different ways to share your inventory data with another device (without images):</p>
                         
-                        <div class="qr-code-container">
-                            <div id="qrcode"></div>
-                            <p class="mt-2 text-xs text-gray-500">Note: This QR code contains your inventory data without images.</p>
+                        <div class="tab-container">
+                            <div class="tab active" data-tab="text">Text Code</div>
+                            <div class="tab" data-tab="qr">QR Code</div>
+                            <div class="tab" data-tab="import">Import</div>
                         </div>
                         
-                        <div class="flex justify-end space-x-3 mt-4">
-                            <button id="download-qr" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
-                                Download QR
+                        <div class="tab-content active" data-tab="text">
+                            <p class="text-sm mb-2">Copy this code and paste it on another device:</p>
+                            <textarea class="data-input" readonly>${compressedData}</textarea>
+                            <button class="copy-btn" data-copy="${compressedData}">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+                                </svg>
+                                Copy to Clipboard
                             </button>
+                        </div>
+                        
+                        <div class="tab-content" data-tab="qr">
+                            <p class="text-sm mb-2">Scan this QR code with another device:</p>
+                            <div class="qr-code-container">
+                                <div id="qrcode"></div>
+                                <p class="mt-2 text-xs text-gray-500">Note: This QR code contains your inventory data without images.</p>
+                                <button id="download-qr" class="px-4 py-2 mt-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
+                                    Download QR
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-content" data-tab="import">
+                            <p class="text-sm mb-2">Paste a code from another device:</p>
+                            <textarea id="import-data-input" class="data-input" placeholder="Paste the code here..."></textarea>
+                            <button id="import-data-btn" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition">
+                                Import Data
+                            </button>
+                        </div>
+                        
+                        <div class="flex justify-end mt-4">
                             <button id="modal-close" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition">
                                 Close
                             </button>
@@ -684,17 +774,53 @@
                     overlay.classList.add('show');
                 }, 10);
                 
-                // Generate QR code
-                const qrcode = qrcode_generate(4, 'L');
-                qrcode.addData(dataStr);
-                qrcode.make();
+                // Initialize QR code (but don't generate yet)
+                let qrcode = null;
                 
-                // Add QR code to DOM
-                document.getElementById('qrcode').innerHTML = qrcode.createImgTag(5);
+                // Set up tab functionality
+                const tabs = document.querySelectorAll('.tab');
+                const tabContents = document.querySelectorAll('.tab-content');
+                
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const tabName = tab.getAttribute('data-tab');
+                        
+                        // Update active tab
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        
+                        // Update active content
+                        tabContents.forEach(content => {
+                            content.classList.remove('active');
+                            if (content.getAttribute('data-tab') === tabName) {
+                                content.classList.add('active');
+                                
+                                // Generate QR code if tab is 'qr'
+                                if (tabName === 'qr' && !qrcode) {
+                                    try {
+                                        // Try to generate QR code with error correction L (low)
+                                        qrcode = generateQRCode(compressedData);
+                                        document.getElementById('qrcode').innerHTML = qrcode;
+                                    } catch (error) {
+                                        console.error('Error generating QR code:', error);
+                                        document.getElementById('qrcode').innerHTML = `
+                                            <div class="p-4 bg-red-100 text-red-800 rounded-lg">
+                                                <p>Could not generate QR code - data too large.</p>
+                                                <p class="text-sm mt-2">Please use the Text Code method instead.</p>
+                                            </div>
+                                        `;
+                                    }
+                                }
+                            }
+                        });
+                    });
+                });
                 
                 // Set up event listeners
                 const closeBtn = document.getElementById('modal-close');
+                const copyBtn = document.querySelector('.copy-btn');
                 const downloadBtn = document.getElementById('download-qr');
+                const importDataBtn = document.getElementById('import-data-btn');
                 
                 const closeModal = () => {
                     overlay.classList.remove('show');
@@ -705,57 +831,160 @@
                 
                 closeBtn.addEventListener('click', closeModal);
                 
-                downloadBtn.addEventListener('click', () => {
-                    // Get QR code image
-                    const qrImg = document.querySelector('#qrcode img');
-                    
-                    // Create a canvas to add a margin and title
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const margin = 20;
-                    const title = 'Stock Management Inventory';
-                    
-                    // Set canvas size
-                    canvas.width = qrImg.width + (margin * 2);
-                    canvas.height = qrImg.height + (margin * 2) + 40; // Extra height for title
-                    
-                    // Fill background
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
-                    // Add title
-                    ctx.fillStyle = '#000000';
-                    ctx.font = '16px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(title, canvas.width / 2, margin);
-                    
-                    // Draw QR code
-                    ctx.drawImage(qrImg, margin, margin + 20);
-                    
-                    // Get data URL
-                    const dataUrl = canvas.toDataURL('image/png');
-                    
-                    // Create link and trigger download
-                    const link = document.createElement('a');
-                    link.download = 'inventory_qr.png';
-                    link.href = dataUrl;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                copyBtn.addEventListener('click', () => {
+                    const textToCopy = copyBtn.getAttribute('data-copy');
+                    navigator.clipboard.writeText(textToCopy)
+                        .then(() => {
+                            copyBtn.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                                Copied!
+                            `;
+                            setTimeout(() => {
+                                copyBtn.innerHTML = `
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+                                    </svg>
+                                    Copy to Clipboard
+                                `;
+                            }, 2000);
+                        })
+                        .catch(err => {
+                            console.error('Error copying text: ', err);
+                            showToast('Failed to copy to clipboard', 'error');
+                        });
                 });
                 
-                showToast('QR code generated successfully', 'success');
+                if (downloadBtn) {
+                    downloadBtn.addEventListener('click', () => {
+                        // Get QR code image
+                        const qrImg = document.querySelector('#qrcode img');
+                        if (!qrImg) return;
+                        
+                        // Create a canvas to add a margin and title
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const margin = 20;
+                        const title = 'Stock Management Inventory';
+                        
+                        // Set canvas size
+                        canvas.width = qrImg.width + (margin * 2);
+                        canvas.height = qrImg.height + (margin * 2) + 40; // Extra height for title
+                        
+                        // Fill background
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Add title
+                        ctx.fillStyle = '#000000';
+                        ctx.font = '16px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(title, canvas.width / 2, margin);
+                        
+                        // Draw QR code
+                        ctx.drawImage(qrImg, margin, margin + 20);
+                        
+                        // Get data URL
+                        const dataUrl = canvas.toDataURL('image/png');
+                        
+                        // Create link and trigger download
+                        const link = document.createElement('a');
+                        link.download = 'inventory_qr.png';
+                        link.href = dataUrl;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    });
+                }
+                
+                importDataBtn.addEventListener('click', () => {
+                    const importText = document.getElementById('import-data-input').value.trim();
+                    if (!importText) {
+                        showToast('Please paste a valid data code', 'warning');
+                        return;
+                    }
+                    
+                    try {
+                        // Decompress the data
+                        const decompressedData = LZString.decompressFromBase64(importText);
+                        const importedData = JSON.parse(decompressedData);
+                        
+                        if (!Array.isArray(importedData)) {
+                            throw new Error('Invalid inventory data format');
+                        }
+                        
+                        // Add imported items
+                        let newItemCount = 0;
+                        importedData.forEach(importedItem => {
+                            // Check if item already exists (by ID)
+                            const existingItemIndex = inventory.findIndex(item => item.id === importedItem.id);
+                            
+                            if (existingItemIndex === -1) {
+                                // New item
+                                inventory.push({
+                                    ...importedItem,
+                                    // Make sure it has required fields
+                                    id: importedItem.id || generateId(),
+                                    createdAt: importedItem.createdAt || new Date().toISOString()
+                                });
+                                newItemCount++;
+                            } else {
+                                // Update existing item (quantity only)
+                                inventory[existingItemIndex].quantity = importedItem.quantity;
+                            }
+                        });
+                        
+                        // Save and update
+                        saveInventory();
+                        updateInventoryDisplay();
+                        
+                        closeModal();
+                        showToast(`Imported ${newItemCount} new items successfully`, 'success');
+                    } catch (error) {
+                        console.error('Import error:', error);
+                        showToast('Error importing data: Invalid or corrupted code', 'error');
+                    }
+                });
+                
+                showToast('Data sharing options ready', 'success');
             } catch (error) {
-                console.error('Error generating QR code:', error);
-                showToast('Error generating QR code', 'error');
+                console.error('Error sharing data:', error);
+                showToast('Error preparing data for sharing', 'error');
             }
         };
 
-        // Function for QR code generation (adapted from library)
-        function qrcode_generate(typeNumber, errorCorrectionLevel) {
-            var qr = qrcode(typeNumber || 4, errorCorrectionLevel || 'M');
-            return qr;
-        }
+        // Generate a QR code for the provided data
+        const generateQRCode = (data) => {
+            try {
+                // Try with a higher version (10) for more data capacity
+                const qr = qrcode(10, 'L'); // L = Low error correction (7%)
+                qr.addData(data);
+                qr.make();
+                return qr.createImgTag(5);
+            } catch (error) {
+                console.error("Failed with version 10, trying version 20:", error);
+                try {
+                    // Try with an even higher version
+                    const qr = qrcode(20, 'L');
+                    qr.addData(data);
+                    qr.make();
+                    return qr.createImgTag(4);
+                } catch (error2) {
+                    console.error("Failed with version 20, trying with version 40 and minimal size:", error2);
+                    try {
+                        // Maximum version with minimum size
+                        const qr = qrcode(40, 'L');
+                        qr.addData(data);
+                        qr.make();
+                        return qr.createImgTag(2);
+                    } catch (error3) {
+                        console.error("Could not generate QR code with any version:", error3);
+                        throw new Error("Data too large for QR code");
+                    }
+                }
+            }
+        };
 
         // Show storage status to user
         const showStorageStatus = (isAvailable, message = null) => {
@@ -896,7 +1125,7 @@
             const importDataBtn = document.getElementById('import-data');
             const importFileInput = document.getElementById('import-file');
             const clearDataBtn = document.getElementById('clear-data');
-            const generateQRBtn = document.getElementById('generate-qr');
+            const shareDataBtn = document.getElementById('share-data');
             
             exportDataBtn?.addEventListener('click', exportInventory);
             importDataBtn?.addEventListener('click', () => importFileInput.click());
@@ -908,7 +1137,7 @@
                     clearInventory
                 );
             });
-            generateQRBtn?.addEventListener('click', generateQRCode);
+            shareDataBtn?.addEventListener('click', shareData);
         };
 
         // Process image - resize and compress for storage efficiency
