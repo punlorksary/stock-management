@@ -1,0 +1,151 @@
+---
+layout: default
+---
+
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    <h1 class="text-3xl font-bold mb-8 text-center">Stock Management</h1>
+    
+    <!-- Add Item Form -->
+    <div class="mb-8 p-6 rounded-lg shadow-md item-card">
+        <h2 class="text-xl font-semibold mb-4">Add New Item</h2>
+        <form id="add-item-form" class="space-y-4">
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label for="item-name" class="block mb-2 text-sm font-medium">Item Name</label>
+                    <input type="text" id="item-name" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter item name" required>
+                </div>
+                
+                <div>
+                    <label for="item-quantity" class="block mb-2 text-sm font-medium">Quantity</label>
+                    <input type="number" id="item-quantity" min="0" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter quantity" required>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block mb-2 text-sm font-medium">Item Image</label>
+                <div class="flex items-center space-x-4">
+                    <div id="image-preview-container" class="h-24 w-24 rounded-lg overflow-hidden image-placeholder">
+                        <span>Preview</span>
+                    </div>
+                    <div>
+                        <label for="item-image" class="custom-file-upload">
+                            <svg class="w-4 h-4 inline-block mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+                            </svg>
+                            Upload Image
+                        </label>
+                        <input type="file" id="item-image" accept="image/*">
+                        <p class="text-xs mt-1 text-gray-500 dark:text-gray-400">Optional. PNG, JPG or GIF</p>
+                        <p id="image-size-warning" class="text-xs mt-1 text-red-500 hidden">Warning: Large images may cause storage issues</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="action-button-container bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mt-6">
+                <button type="submit" class="w-full px-5 py-3 text-base font-medium text-center text-white bg-[var(--primary-color)] rounded-lg hover:bg-[#4b4abf] focus:ring-4 focus:outline-none focus:ring-blue-300 transition flex items-center justify-center">
+                    <span id="loading-indicator" class="hidden">
+                        <span class="loader"></span>
+                    </span>
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Add Item to Inventory
+                </button>
+                <div class="mt-2 text-sm text-center text-gray-500">Fill out the form above and click this button to add a new item</div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Storage Info -->
+    <div id="storage-info" class="mb-4 p-4 rounded-lg bg-blue-50 text-blue-800 flex items-center hidden">
+        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1v-3a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+        </svg>
+        <div>
+            <span class="font-medium">Storage Information:</span>
+            <div class="text-sm mt-1">
+                <div>Used: <span id="storage-used">0 KB</span> of <span id="storage-quota">5 MB</span></div>
+                <div class="w-full bg-blue-200 rounded-full h-2 mt-1">
+                    <div id="storage-bar" class="bg-blue-800 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Inventory Display -->
+    <div class="mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
+            <h2 class="text-xl font-semibold">Current Inventory</h2>
+            <div class="flex flex-col md:flex-row items-start md:items-center gap-2">
+                <div id="storage-status" class="text-xs font-medium px-3 py-1 bg-yellow-100 text-yellow-800 rounded-md flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    Checking storage...
+                </div>
+                <div id="item-count" class="text-sm font-medium px-3 py-1 bg-[var(--primary-color)] text-white rounded-full">
+                    0 items
+                </div>
+            </div>
+        </div>
+        
+        <div id="no-items-message" class="text-center py-8 item-card rounded-lg">
+            <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+            </svg>
+            <p class="mt-4 text-gray-500 dark:text-gray-400">Your inventory is empty. Add items to get started.</p>
+        </div>
+        
+        <div id="inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Items will be added here dynamically -->
+        </div>
+    </div>
+    
+    <!-- Tools -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Tools</h2>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <button id="export-data" class="p-4 rounded-lg shadow-md bg-green-100 text-green-800 hover:bg-green-200 transition flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+                Export Data
+            </button>
+            
+            <div class="relative">
+                <input type="file" id="import-file" class="hidden" accept=".json">
+                <button id="import-data" class="p-4 w-full rounded-lg shadow-md bg-blue-100 text-blue-800 hover:bg-blue-200 transition flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" transform="rotate(180, 10, 10)"></path>
+                    </svg>
+                    Import Data
+                </button>
+            </div>
+            
+            <button id="sync-cloud" class="p-4 rounded-lg shadow-md bg-purple-100 text-purple-800 hover:bg-purple-200 transition flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" clip-rule="evenodd"></path>
+                </svg>
+                Sync With Cloud
+            </button>
+            
+            <button id="clear-data" class="p-4 rounded-lg shadow-md bg-red-100 text-red-800 hover:bg-red-200 transition flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                Clear All Data
+            </button>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="text-center text-gray-500 text-sm mt-8 pb-6">
+        <p>Stock Management App &copy; 2023</p>
+        <p class="mt-1">
+            <a href="https://github.com/yourusername/stock-management" target="_blank" class="text-[var(--primary-color)] hover:underline">View on GitHub</a>
+        </p>
+    </footer>
+</div>
