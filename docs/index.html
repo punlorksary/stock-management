@@ -279,6 +279,14 @@
             margin-bottom: 12px;
             word-break: break-all;
         }
+
+        /* Export/Sync panel */
+        .qr-code-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -413,11 +421,11 @@
                     </button>
                 </div>
                 
-                <button id="sync-setup" class="p-4 rounded-lg shadow-md bg-purple-100 text-purple-800 hover:bg-purple-200 transition flex items-center justify-center">
+                <button id="generate-qr" class="p-4 rounded-lg shadow-md bg-purple-100 text-purple-800 hover:bg-purple-200 transition flex items-center justify-center">
                     <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd" d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" clip-rule="evenodd"></path>
                     </svg>
-                    Cloud Sync Setup
+                    Generate QR Code
                 </button>
                 
                 <button id="clear-data" class="p-4 rounded-lg shadow-md bg-red-100 text-red-800 hover:bg-red-200 transition flex items-center justify-center">
@@ -438,6 +446,7 @@
         </footer>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script>
         // Constants
         const MAX_LOCALSTORAGE_SIZE = 5 * 1024 * 1024; // 5MB approximate limit
@@ -446,162 +455,19 @@
         const STORAGE_KEY = 'stockInventory';
         const SYNC_KEY = 'syncConfig';
         const MAX_RETRIES = 3; // Maximum number of API call retries
-        const SYNC_INTERVAL = 60000; // Sync every minute
-
-        // Using Firebase Realtime Database REST API for cloud storage
-        const FIREBASE_DB_URL = "https://stock-management-app-a4c11-default-rtdb.firebaseio.com/inventory";
 
         // State
         let inventory = [];
         let storageAvailable = false;
-        let syncConfig = null;
         let toastTimeout = null;
-        let syncInterval = null;
-        let lastSyncTime = null;
-        let isFirstSync = true;
 
         // DOM Elements
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize the app
-            loadSyncConfig();
             loadInventory();
             setupEventListeners();
             updateStorageInfo();
-            startSyncInterval();
         });
-
-        // Load sync configuration
-        const loadSyncConfig = () => {
-            if (!storageAvailable) return;
-
-            try {
-                const storedConfig = localStorage.getItem(SYNC_KEY);
-                if (storedConfig) {
-                    syncConfig = JSON.parse(storedConfig);
-                    updateSyncStatus('online');
-                }
-            } catch (error) {
-                console.error('Error loading sync config:', error);
-                syncConfig = null;
-                updateSyncStatus('offline');
-            }
-        };
-
-        // Save sync configuration
-        const saveSyncConfig = (config) => {
-            if (!storageAvailable) return;
-
-            try {
-                syncConfig = config;
-                localStorage.setItem(SYNC_KEY, JSON.stringify(config));
-                updateSyncStatus('online');
-            } catch (error) {
-                console.error('Error saving sync config:', error);
-                showToast('Error saving sync configuration', 'error');
-            }
-        };
-
-        // Start automatic sync interval
-        const startSyncInterval = () => {
-            if (syncInterval) {
-                clearInterval(syncInterval);
-            }
-
-            // Perform initial sync
-            if (syncConfig) {
-                syncWithCloud(true);
-            }
-
-            // Set up interval for periodic syncing
-            syncInterval = setInterval(() => {
-                if (syncConfig) {
-                    syncWithCloud(true);
-                }
-            }, SYNC_INTERVAL);
-        };
-
-        // Update sync status indicator
-        const updateSyncStatus = (status, message = null) => {
-            const syncStatusElement = document.getElementById('sync-status');
-            
-            if (!syncStatusElement) return;
-
-            syncStatusElement.className = 'sync-status';
-            
-            switch (status) {
-                case 'online':
-                    syncStatusElement.classList.add('sync-online');
-                    syncStatusElement.innerHTML = `
-                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                        </svg>
-                        ${message || 'Cloud Sync Enabled'}
-                    `;
-                    break;
-                case 'offline':
-                    syncStatusElement.classList.add('sync-offline');
-                    syncStatusElement.innerHTML = `
-                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" transform="rotate(180, 10, 10)"></path>
-                        </svg>
-                        ${message || 'Offline'}
-                    `;
-                    break;
-                case 'syncing':
-                    syncStatusElement.classList.add('sync-syncing');
-                    syncStatusElement.innerHTML = `
-                        <div class="loader mr-1"></div>
-                        Syncing...
-                    `;
-                    break;
-                default:
-                    syncStatusElement.classList.add('sync-offline');
-                    syncStatusElement.innerHTML = `
-                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                        </svg>
-                        ${message || 'Sync Error'}
-                    `;
-            }
-
-            // Update last sync time if available and not initial load
-            if (lastSyncTime && status === 'online' && !isFirstSync) {
-                const timeAgo = getTimeAgo(lastSyncTime);
-                syncStatusElement.title = `Last synced: ${timeAgo}`;
-                
-                // Add small text with last sync time
-                const timeIndicator = document.createElement('span');
-                timeIndicator.className = 'text-xs ml-1 opacity-70';
-                timeIndicator.textContent = `(${timeAgo})`;
-                syncStatusElement.appendChild(timeIndicator);
-            }
-            
-            isFirstSync = false;
-        };
-
-        // Format time ago
-        const getTimeAgo = (timestamp) => {
-            const seconds = Math.floor((new Date() - new Date(timestamp)) / 1000);
-            
-            let interval = Math.floor(seconds / 31536000);
-            if (interval > 1) return interval + ' years ago';
-            
-            interval = Math.floor(seconds / 2592000);
-            if (interval > 1) return interval + ' months ago';
-            
-            interval = Math.floor(seconds / 86400);
-            if (interval > 1) return interval + ' days ago';
-            
-            interval = Math.floor(seconds / 3600);
-            if (interval > 1) return interval + ' hours ago';
-            
-            interval = Math.floor(seconds / 60);
-            if (interval > 1) return interval + ' minutes ago';
-            
-            if (seconds < 10) return 'just now';
-            
-            return Math.floor(seconds) + ' seconds ago';
-        };
 
         // Fetch with retry functionality
         const fetchWithRetry = async (url, options = {}, maxRetries = MAX_RETRIES) => {
@@ -752,11 +618,6 @@
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
                     showStorageStatus(true, 'Data saved');
                     updateStorageInfo();
-                    
-                    // If sync is configured, sync with cloud
-                    if (syncConfig) {
-                        syncWithCloud();
-                    }
                 } catch (error) {
                     console.error('Error saving to storage:', error);
                     if (error.name === 'QuotaExceededError' || error.code === 22) {
@@ -769,282 +630,132 @@
             }
         };
 
-        // Cloud sync functionality
-        const syncWithCloud = async (silent = false) => {
-            if (!syncConfig) {
+        // Generate QR code
+        const generateQRCode = () => {
+            if (inventory.length === 0) {
+                showToast('No inventory data to export', 'warning');
                 return;
             }
-
+            
             try {
-                if (!silent) {
-                    updateSyncStatus('syncing');
-                }
-                
-                // Format inventory for cloud storage - strip out large images
-                const cloudInventory = inventory.map(item => {
-                    // Clone the item
-                    const cloudItem = { ...item };
-                    
-                    // If there's an image and it's large, replace it with a placeholder
-                    if (cloudItem.image && cloudItem.image.length > 1000) {
-                        cloudItem.image = "IMAGE_DATA_STORED_LOCALLY";
-                    }
-                    
-                    return cloudItem;
-                });
-                
-                // Create the URL with the sync ID
-                const syncUrl = `${FIREBASE_DB_URL}/${syncConfig.syncId}.json`;
-                
-                // Make a Firebase REST API call to update the data
-                const response = await fetchWithRetry(syncUrl, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(cloudInventory)
-                });
-                
-                const data = await response.json();
-                
-                if (data) {
-                    lastSyncTime = new Date();
-                    updateSyncStatus('online');
-                    
-                    if (!silent) {
-                        showToast('Data synced successfully', 'success');
-                    }
-                    return true;
-                } else {
-                    throw new Error('Unknown error occurred during sync');
-                }
-            } catch (error) {
-                console.error('Cloud sync failed:', error);
-                updateSyncStatus('offline', 'Sync Error');
-                
-                if (!silent) {
-                    showToast(`Cloud sync failed: ${error.message}`, 'error');
-                }
-                return false;
-            }
-        };
-
-        // Fetch data from cloud
-        const fetchFromCloud = async () => {
-            if (!syncConfig) {
-                return false;
-            }
-
-            try {
-                updateSyncStatus('syncing');
-                
-                // Create the URL with the sync ID
-                const syncUrl = `${FIREBASE_DB_URL}/${syncConfig.syncId}.json`;
-                
-                // Make a Firebase REST API call to get the data
-                const response = await fetchWithRetry(syncUrl, {
-                    method: 'GET'
-                });
-                
-                const cloudInventory = await response.json();
-                
-                if (cloudInventory) {
-                    // Merge cloud inventory with local inventory
-                    // This preserves local image data that was stripped for cloud storage
-                    const mergedInventory = cloudInventory.map(cloudItem => {
-                        // If the cloud item has a placeholder for image data, try to find the local version
-                        if (cloudItem.image === "IMAGE_DATA_STORED_LOCALLY") {
-                            // Look for this item in the local inventory
-                            const localItem = inventory.find(item => item.id === cloudItem.id);
-                            if (localItem && localItem.image) {
-                                // Use the local image data
-                                cloudItem.image = localItem.image;
-                            } else {
-                                // If local image not found, use null
-                                cloudItem.image = null;
-                            }
-                        }
-                        
-                        return cloudItem;
-                    });
-                    
-                    // Update local inventory with merged data
-                    inventory = mergedInventory;
-                    
-                    // Save to local storage
-                    if (storageAvailable) {
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
-                    }
-                    
-                    // Update display
-                    updateInventoryDisplay();
-                    updateStorageInfo();
-                    
-                    lastSyncTime = new Date();
-                    updateSyncStatus('online');
-                    showToast('Data loaded from cloud successfully', 'success');
-                    return true;
-                } else {
-                    throw new Error('No data found in cloud storage');
-                }
-            } catch (error) {
-                console.error('Cloud fetch failed:', error);
-                updateSyncStatus('offline', 'Sync Error');
-                showToast(`Cloud data fetch failed: ${error.message}`, 'error');
-                return false;
-            }
-        };
-
-        // Create a new cloud sync
-        const createNewSync = async () => {
-            try {
-                updateSyncStatus('syncing');
-                
-                // Generate a unique sync ID
-                const syncId = generateId();
-                
-                // Format inventory for cloud storage - strip out large images
-                const cloudInventory = inventory.map(item => {
-                    // Clone the item
-                    const cloudItem = { ...item };
-                    
-                    // If there's an image and it's large, replace it with a placeholder
-                    if (cloudItem.image && cloudItem.image.length > 1000) {
-                        cloudItem.image = "IMAGE_DATA_STORED_LOCALLY";
-                    }
-                    
-                    return cloudItem;
-                });
-                
-                // Create the URL with the sync ID
-                const syncUrl = `${FIREBASE_DB_URL}/${syncId}.json`;
-                
-                // Make a Firebase REST API call to create the data
-                const response = await fetchWithRetry(syncUrl, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(inventory.length > 0 ? cloudInventory : [])
-                });
-                
-                const data = await response.json();
-                
-                if (data !== null) {
-                    const newConfig = {
-                        syncId: syncId,
-                        createdAt: new Date().toISOString()
+                // Create a simplified version of inventory for QR code (without images)
+                const simplifiedInventory = inventory.map(item => {
+                    return {
+                        id: item.id,
+                        name: item.name,
+                        quantity: item.quantity,
+                        createdAt: item.createdAt
                     };
+                });
+
+                // Convert to JSON string
+                const dataStr = JSON.stringify(simplifiedInventory);
+                
+                // Create modal for QR code display
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                
+                overlay.innerHTML = `
+                    <div class="modal-content">
+                        <h3 class="text-xl font-semibold mb-2">Inventory QR Code</h3>
+                        <p class="mb-4">Scan this QR code with another device to transfer your inventory data (without images). You can also download this as an image.</p>
+                        
+                        <div class="qr-code-container">
+                            <div id="qrcode"></div>
+                            <p class="mt-2 text-xs text-gray-500">Note: This QR code contains your inventory data without images.</p>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3 mt-4">
+                            <button id="download-qr" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
+                                Download QR
+                            </button>
+                            <button id="modal-close" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Add to DOM
+                document.body.appendChild(overlay);
+                
+                // Trigger animation
+                setTimeout(() => {
+                    overlay.classList.add('show');
+                }, 10);
+                
+                // Generate QR code
+                const qrcode = qrcode_generate(4, 'L');
+                qrcode.addData(dataStr);
+                qrcode.make();
+                
+                // Add QR code to DOM
+                document.getElementById('qrcode').innerHTML = qrcode.createImgTag(5);
+                
+                // Set up event listeners
+                const closeBtn = document.getElementById('modal-close');
+                const downloadBtn = document.getElementById('download-qr');
+                
+                const closeModal = () => {
+                    overlay.classList.remove('show');
+                    setTimeout(() => {
+                        overlay.remove();
+                    }, 300);
+                };
+                
+                closeBtn.addEventListener('click', closeModal);
+                
+                downloadBtn.addEventListener('click', () => {
+                    // Get QR code image
+                    const qrImg = document.querySelector('#qrcode img');
                     
-                    // Save the new sync config
-                    saveSyncConfig(newConfig);
+                    // Create a canvas to add a margin and title
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const margin = 20;
+                    const title = 'Stock Management Inventory';
                     
-                    lastSyncTime = new Date();
-                    updateSyncStatus('online');
-                    showToast('New cloud sync created successfully', 'success');
-                    return newConfig;
-                } else {
-                    throw new Error('Failed to create cloud storage');
-                }
+                    // Set canvas size
+                    canvas.width = qrImg.width + (margin * 2);
+                    canvas.height = qrImg.height + (margin * 2) + 40; // Extra height for title
+                    
+                    // Fill background
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Add title
+                    ctx.fillStyle = '#000000';
+                    ctx.font = '16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(title, canvas.width / 2, margin);
+                    
+                    // Draw QR code
+                    ctx.drawImage(qrImg, margin, margin + 20);
+                    
+                    // Get data URL
+                    const dataUrl = canvas.toDataURL('image/png');
+                    
+                    // Create link and trigger download
+                    const link = document.createElement('a');
+                    link.download = 'inventory_qr.png';
+                    link.href = dataUrl;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+                
+                showToast('QR code generated successfully', 'success');
             } catch (error) {
-                console.error('Cloud sync creation failed:', error);
-                updateSyncStatus('offline', 'Setup Error');
-                showToast(`Cloud setup failed: ${error.message}`, 'error');
-                return null;
+                console.error('Error generating QR code:', error);
+                showToast('Error generating QR code', 'error');
             }
         };
 
-        // Show sync setup modal
-        const showSyncSetupModal = () => {
-            // Create modal overlay
-            const overlay = document.createElement('div');
-            overlay.className = 'modal-overlay';
-            
-            const currentId = syncConfig ? syncConfig.syncId : '';
-            
-            overlay.innerHTML = `
-                <div class="modal-content">
-                    <h3 class="text-xl font-semibold mb-2">Cloud Sync Setup</h3>
-                    <p class="mb-4">Set up cloud synchronization to access your inventory across multiple devices.</p>
-                    
-                    <div class="sync-setup-container">
-                        ${currentId ? `
-                            <p class="mb-2 font-medium">Your current sync ID:</p>
-                            <div class="sync-id-display">${currentId}</div>
-                            <p class="mb-4 text-sm text-gray-500">Share this ID with other devices to access the same inventory.</p>
-                        ` : ''}
-                        
-                        <div class="bg-blue-50 p-3 rounded-lg mb-4">
-                            <p class="text-sm text-blue-800">
-                                <strong>Options:</strong>
-                                <br>1. Create a new sync (for first device)
-                                <br>2. Join existing sync (for additional devices)
-                            </p>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label for="existing-sync-id" class="block mb-2 text-sm font-medium">Join with existing Sync ID (optional):</label>
-                            <input type="text" id="existing-sync-id" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter existing Sync ID">
-                            <p class="text-xs mt-1 text-gray-500">Leave empty to create a new sync.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-end space-x-3">
-                        <button id="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition">
-                            Cancel
-                        </button>
-                        <button id="modal-confirm" class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition">
-                            ${currentId ? 'Update Sync' : 'Set Up Sync'}
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            // Add to DOM
-            document.body.appendChild(overlay);
-            
-            // Trigger animation
-            setTimeout(() => {
-                overlay.classList.add('show');
-            }, 10);
-            
-            // Set up event listeners
-            const cancelBtn = document.getElementById('modal-cancel');
-            const confirmBtn = document.getElementById('modal-confirm');
-            const existingSyncIdInput = document.getElementById('existing-sync-id');
-            
-            const closeModal = () => {
-                overlay.classList.remove('show');
-                setTimeout(() => {
-                    overlay.remove();
-                }, 300);
-            };
-            
-            cancelBtn.addEventListener('click', closeModal);
-            
-            confirmBtn.addEventListener('click', async () => {
-                const existingSyncId = existingSyncIdInput.value.trim();
-                
-                if (existingSyncId) {
-                    // Join existing sync
-                    saveSyncConfig({
-                        syncId: existingSyncId,
-                        createdAt: new Date().toISOString()
-                    });
-                    
-                    // Fetch data from the cloud
-                    const success = await fetchFromCloud();
-                    if (success) {
-                        showToast('Joined existing sync successfully', 'success');
-                    }
-                } else {
-                    // Create new sync
-                    await createNewSync();
-                }
-                
-                closeModal();
-            });
-        };
+        // Function for QR code generation (adapted from library)
+        function qrcode_generate(typeNumber, errorCorrectionLevel) {
+            var qr = qrcode(typeNumber || 4, errorCorrectionLevel || 'M');
+            return qr;
+        }
 
         // Show storage status to user
         const showStorageStatus = (isAvailable, message = null) => {
@@ -1185,7 +896,7 @@
             const importDataBtn = document.getElementById('import-data');
             const importFileInput = document.getElementById('import-file');
             const clearDataBtn = document.getElementById('clear-data');
-            const syncSetupBtn = document.getElementById('sync-setup');
+            const generateQRBtn = document.getElementById('generate-qr');
             
             exportDataBtn?.addEventListener('click', exportInventory);
             importDataBtn?.addEventListener('click', () => importFileInput.click());
@@ -1197,8 +908,7 @@
                     clearInventory
                 );
             });
-            
-            syncSetupBtn?.addEventListener('click', showSyncSetupModal);
+            generateQRBtn?.addEventListener('click', generateQRCode);
         };
 
         // Process image - resize and compress for storage efficiency
