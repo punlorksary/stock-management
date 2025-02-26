@@ -438,11 +438,136 @@
         .sync-error {
             color: #ef4444;
         }
+
+        /* Firebase Setup Form */
+        .firebase-setup-form {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            background-color: var(--card-bg);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .firebase-setup-form h2 {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .firebase-setup-form p {
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        
+        .firebase-setup-form label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .firebase-setup-form input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+        
+        .firebase-setup-form .field-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .firebase-setup-form .btn-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+        
+        .firebase-setup-steps {
+            background-color: rgba(93, 92, 222, 0.05);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .firebase-setup-steps ol {
+            padding-left: 1.5rem;
+            list-style-type: decimal;
+        }
+        
+        .firebase-setup-steps li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Toggle for local/cloud storage */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding: 0.75rem;
+            background-color: rgba(93, 92, 222, 0.05);
+            border-radius: 0.5rem;
+        }
+        
+        .toggle-track {
+            position: relative;
+            display: inline-block;
+            width: 3.5rem;
+            height: 1.75rem;
+            margin: 0 0.75rem;
+        }
+        
+        .toggle-track input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 1.75rem;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 1.25rem;
+            width: 1.25rem;
+            left: 0.25rem;
+            bottom: 0.25rem;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(1.75rem);
+        }
+        
+        .toggle-label {
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
     <div class="container mx-auto px-4 py-8 max-w-5xl">
-        <div id="auth-container">
+        <div id="firebase-setup-container">
+            <!-- Firebase setup form will be inserted here -->
+        </div>
+        
+        <div id="auth-container" class="hidden">
             <!-- Authentication form will be inserted here -->
         </div>
         
@@ -613,7 +738,7 @@
             <footer class="text-center text-gray-500 text-sm mt-8 pb-6">
                 <p>Stock Management App &copy; 2023</p>
                 <p class="mt-1">
-                    <a href="https://github.com/yourusername/stock-management" target="_blank" class="text-[var(--primary-color)] hover:underline">View on GitHub</a>
+                    <a href="#" id="firebase-config-link" class="text-[var(--primary-color)] hover:underline">Firebase Configuration</a>
                 </p>
             </footer>
         </div>
@@ -624,26 +749,9 @@
         const IMAGE_QUALITY = 0.7; // JPEG compression quality
         const MAX_IMAGE_DIMENSION = 800; // Maximum width or height for images
         const LOCAL_STORAGE_KEY = 'stockInventory_local';
+        const FIREBASE_CONFIG_KEY = 'firebase_config';
+        const STORAGE_MODE_KEY = 'storage_mode';
 
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyB8yS72B3LU8GqZ-ttCeQFXZYdWrW3Y94c",
-            authDomain: "stock-manager-app-80e3e.firebaseapp.com",
-            databaseURL: "https://stock-manager-app-80e3e-default-rtdb.firebaseio.com",
-            projectId: "stock-manager-app-80e3e",
-            storageBucket: "stock-manager-app-80e3e.appspot.com",
-            messagingSenderId: "564121500326",
-            appId: "1:564121500326:web:5d7f7fbfb85fb3b6b0e3c7"
-        };
-        
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        
-        // Firebase services
-        const auth = firebase.auth();
-        const database = firebase.database();
-        const storage = firebase.storage();
-        
         // State
         let inventory = [];
         let currentUser = null;
@@ -652,18 +760,11 @@
         let isSyncing = false;
         let localStorageAvailable = false;
         let toastTimeout = null;
-        
-        // Get items reference for the current user
-        const getItemsRef = () => {
-            if (!currentUser) return null;
-            return database.ref(`users/${currentUser.uid}/items`);
-        };
-        
-        // Get storage reference for the current user
-        const getStorageRef = () => {
-            if (!currentUser) return null;
-            return storage.ref(`users/${currentUser.uid}`);
-        };
+        let firebase = null;
+        let auth = null;
+        let database = null;
+        let storage = null;
+        let storageMode = 'local'; // 'local' or 'cloud'
         
         // Demo data
         const DEMO_INVENTORY = [
@@ -720,22 +821,81 @@
         // DOM ready handler
         document.addEventListener('DOMContentLoaded', () => {
             checkLocalStorageAvailability();
-            setupAuthUI();
+            loadStorageMode();
             setupNetworkListeners();
-            
-            // Check if user is already logged in
-            auth.onAuthStateChanged((user) => {
-                currentUser = user;
-                if (user) {
-                    showApp();
-                    updateUserProfile();
-                    loadInventory();
-                    setupEventListeners();
-                } else {
-                    showAuth();
-                }
-            });
+            initializeApp();
         });
+        
+        // Load the storage mode from local storage
+        const loadStorageMode = () => {
+            if (localStorageAvailable) {
+                const savedMode = localStorage.getItem(STORAGE_MODE_KEY);
+                if (savedMode) {
+                    storageMode = savedMode;
+                }
+            }
+        };
+        
+        // Save the storage mode to local storage
+        const saveStorageMode = (mode) => {
+            if (localStorageAvailable) {
+                localStorage.setItem(STORAGE_MODE_KEY, mode);
+            }
+        };
+        
+        // Initialize the app based on saved configuration
+        const initializeApp = () => {
+            if (localStorageAvailable) {
+                const firebaseConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
+                
+                if (firebaseConfig && storageMode === 'cloud') {
+                    // Try to initialize Firebase with saved config
+                    try {
+                        initializeFirebase(JSON.parse(firebaseConfig));
+                        setupAuthUI();
+                        
+                        // Check if user is already logged in
+                        auth.onAuthStateChanged((user) => {
+                            currentUser = user;
+                            if (user) {
+                                showApp();
+                                updateUserProfile();
+                                loadInventory();
+                                setupEventListeners();
+                            } else {
+                                showAuth();
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Error initializing Firebase:', error);
+                        showFirebaseSetup();
+                    }
+                } else {
+                    // No saved config, show setup
+                    showFirebaseSetup();
+                }
+            } else {
+                // Local storage not available, go straight to local mode
+                storageMode = 'local';
+                showApp();
+                loadInventory();
+                setupEventListeners();
+            }
+        };
+        
+        // Initialize Firebase with the provided config
+        const initializeFirebase = (config) => {
+            // Initialize the app if it's not already initialized
+            if (!firebase) {
+                firebase = window.firebase;
+                firebase.initializeApp(config);
+                
+                // Initialize services
+                auth = firebase.auth();
+                database = firebase.database();
+                storage = firebase.storage();
+            }
+        };
         
         // Check if local storage is available
         const checkLocalStorageAvailability = () => {
@@ -760,9 +920,196 @@
             isOnline = navigator.onLine;
             updateSyncStatus();
             
-            if (isOnline && pendingChanges.length > 0 && currentUser) {
+            if (isOnline && pendingChanges.length > 0 && currentUser && storageMode === 'cloud') {
                 syncPendingChanges();
             }
+        };
+        
+        // Show Firebase setup UI
+        const showFirebaseSetup = () => {
+            const setupContainer = document.getElementById('firebase-setup-container');
+            
+            setupContainer.innerHTML = `
+                <div class="firebase-setup-form">
+                    <h2 class="text-2xl font-bold">Stock Management Setup</h2>
+                    
+                    <div class="toggle-container">
+                        <span class="toggle-label">Local Storage</span>
+                        <label class="toggle-track">
+                            <input type="checkbox" id="storage-mode-toggle" ${storageMode === 'cloud' ? 'checked' : ''}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">Cloud Storage</span>
+                    </div>
+                    
+                    <div id="local-storage-info" class="${storageMode === 'cloud' ? 'hidden' : ''}">
+                        <p>You are using <strong>Local Storage mode</strong>. Your inventory data will be stored in your browser's local storage.</p>
+                        <p>This means your data will <strong>NOT</strong> be available on other devices and will be lost if you clear your browser data.</p>
+                        <button id="continue-local" class="w-full px-5 py-3 text-base font-medium text-center text-white bg-[var(--primary-color)] rounded-lg hover:bg-[#4b4abf] transition mt-4">
+                            Continue with Local Storage
+                        </button>
+                    </div>
+                    
+                    <div id="firebase-setup-form" class="${storageMode === 'local' ? 'hidden' : ''}">
+                        <p>To use cloud storage, you need to create a Firebase project and provide your configuration details.</p>
+                        
+                        <div class="firebase-setup-steps">
+                            <h3 class="font-semibold mb-2">Setup Steps:</h3>
+                            <ol>
+                                <li>Go to <a href="https://console.firebase.google.com/" target="_blank" class="text-[var(--primary-color)] underline">Firebase Console</a></li>
+                                <li>Click "Add Project" and follow the setup wizard</li>
+                                <li>Once your project is created, click "Web" (</>) to add a web app</li>
+                                <li>Register your app with any name and copy the configuration object</li>
+                                <li>Paste the configuration values below</li>
+                                <li>Go to "Authentication" in Firebase Console and enable Email/Password authentication</li>
+                                <li>Go to "Realtime Database" and create a database in test mode</li>
+                                <li>Go to "Storage" and create a storage bucket in test mode</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="field-group">
+                            <label for="firebase-api-key">API Key</label>
+                            <input type="text" id="firebase-api-key" placeholder="AIzaSyC_..." required>
+                            
+                            <label for="firebase-auth-domain">Auth Domain</label>
+                            <input type="text" id="firebase-auth-domain" placeholder="your-project.firebaseapp.com" required>
+                            
+                            <label for="firebase-database-url">Database URL</label>
+                            <input type="text" id="firebase-database-url" placeholder="https://your-project-default-rtdb.firebaseio.com" required>
+                            
+                            <label for="firebase-project-id">Project ID</label>
+                            <input type="text" id="firebase-project-id" placeholder="your-project" required>
+                            
+                            <label for="firebase-storage-bucket">Storage Bucket</label>
+                            <input type="text" id="firebase-storage-bucket" placeholder="your-project.appspot.com" required>
+                            
+                            <label for="firebase-messaging-sender-id">Messaging Sender ID</label>
+                            <input type="text" id="firebase-messaging-sender-id" placeholder="1234567890" required>
+                            
+                            <label for="firebase-app-id">App ID</label>
+                            <input type="text" id="firebase-app-id" placeholder="1:1234567890:web:abcdef123456" required>
+                        </div>
+                        
+                        <div class="btn-group">
+                            <button id="test-firebase" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
+                                Test Connection
+                            </button>
+                            <button id="save-firebase" class="px-4 py-2 bg-[var(--primary-color)] text-white rounded hover:bg-[#4b4abf] transition">
+                                Save & Continue
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listeners
+            const storageToggle = document.getElementById('storage-mode-toggle');
+            const localStorageInfo = document.getElementById('local-storage-info');
+            const firebaseSetupForm = document.getElementById('firebase-setup-form');
+            const continueLocalBtn = document.getElementById('continue-local');
+            const testFirebaseBtn = document.getElementById('test-firebase');
+            const saveFirebaseBtn = document.getElementById('save-firebase');
+            
+            storageToggle.addEventListener('change', (e) => {
+                const newMode = e.target.checked ? 'cloud' : 'local';
+                storageMode = newMode;
+                saveStorageMode(newMode);
+                
+                if (newMode === 'cloud') {
+                    localStorageInfo.classList.add('hidden');
+                    firebaseSetupForm.classList.remove('hidden');
+                } else {
+                    localStorageInfo.classList.remove('hidden');
+                    firebaseSetupForm.classList.add('hidden');
+                }
+            });
+            
+            continueLocalBtn.addEventListener('click', () => {
+                showApp();
+                loadInventory();
+                setupEventListeners();
+            });
+            
+            testFirebaseBtn.addEventListener('click', async () => {
+                const config = getFirebaseConfigFromForm();
+                if (!config) return;
+                
+                testFirebaseBtn.disabled = true;
+                testFirebaseBtn.textContent = 'Testing...';
+                
+                try {
+                    // Initialize Firebase with the config
+                    initializeFirebase(config);
+                    
+                    // Test connection by trying to get timestamp from Firebase
+                    const connectedRef = database.ref(".info/connected");
+                    const snapshot = await new Promise((resolve, reject) => {
+                        connectedRef.once('value', resolve, reject);
+                    });
+                    
+                    if (snapshot.val() === true) {
+                        showToast('Firebase connection successful!', 'success');
+                    } else {
+                        showToast('Firebase connected but not authenticated. Check your config.', 'warning');
+                    }
+                } catch (error) {
+                    console.error('Error testing Firebase connection:', error);
+                    showToast(`Connection error: ${error.message}`, 'error');
+                } finally {
+                    testFirebaseBtn.disabled = false;
+                    testFirebaseBtn.textContent = 'Test Connection';
+                }
+            });
+            
+            saveFirebaseBtn.addEventListener('click', () => {
+                const config = getFirebaseConfigFromForm();
+                if (!config) return;
+                
+                try {
+                    // Save the config
+                    if (localStorageAvailable) {
+                        localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(config));
+                    }
+                    
+                    // Initialize Firebase
+                    initializeFirebase(config);
+                    
+                    // Move to auth UI
+                    setupAuthUI();
+                    showAuth();
+                    
+                    showToast('Firebase configuration saved', 'success');
+                } catch (error) {
+                    console.error('Error saving Firebase config:', error);
+                    showToast(`Error: ${error.message}`, 'error');
+                }
+            });
+        };
+        
+        // Get Firebase config from form
+        const getFirebaseConfigFromForm = () => {
+            const apiKey = document.getElementById('firebase-api-key').value.trim();
+            const authDomain = document.getElementById('firebase-auth-domain').value.trim();
+            const databaseURL = document.getElementById('firebase-database-url').value.trim();
+            const projectId = document.getElementById('firebase-project-id').value.trim();
+            const storageBucket = document.getElementById('firebase-storage-bucket').value.trim();
+            const messagingSenderId = document.getElementById('firebase-messaging-sender-id').value.trim();
+            const appId = document.getElementById('firebase-app-id').value.trim();
+            
+            if (!apiKey || !authDomain || !databaseURL || !projectId || !storageBucket || !messagingSenderId || !appId) {
+                showToast('Please fill in all Firebase configuration fields', 'error');
+                return null;
+            }
+            
+            return {
+                apiKey,
+                authDomain,
+                databaseURL,
+                projectId,
+                storageBucket,
+                messagingSenderId,
+                appId
+            };
         };
         
         // Setup authentication UI
@@ -854,19 +1201,36 @@
         
         // Show authentication UI
         const showAuth = () => {
+            document.getElementById('firebase-setup-container').classList.add('hidden');
             document.getElementById('auth-container').classList.remove('hidden');
             document.getElementById('app-container').classList.add('hidden');
         };
         
         // Show app UI
         const showApp = () => {
+            document.getElementById('firebase-setup-container').classList.add('hidden');
             document.getElementById('auth-container').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
+            
+            // Hide or show user profile based on storage mode
+            const userProfile = document.getElementById('user-profile');
+            const logoutBtn = document.getElementById('logout-btn');
+            const syncStatus = document.getElementById('sync-status');
+            
+            if (storageMode === 'local') {
+                userProfile.classList.add('hidden');
+                logoutBtn.classList.add('hidden');
+                syncStatus.classList.add('hidden');
+            } else {
+                userProfile.classList.remove('hidden');
+                logoutBtn.classList.remove('hidden');
+                syncStatus.classList.remove('hidden');
+            }
         };
         
         // Update user profile display
         const updateUserProfile = () => {
-            if (!currentUser) return;
+            if (!currentUser || storageMode !== 'cloud') return;
             
             const userAvatar = document.getElementById('user-avatar');
             const userName = document.getElementById('user-name');
@@ -889,59 +1253,77 @@
             });
         };
         
-        // Load inventory from Firebase
+        // Get items reference for the current user
+        const getItemsRef = () => {
+            if (!database || !currentUser) return null;
+            return database.ref(`users/${currentUser.uid}/items`);
+        };
+        
+        // Get storage reference for the current user
+        const getStorageRef = () => {
+            if (!storage || !currentUser) return null;
+            return storage.ref(`users/${currentUser.uid}`);
+        };
+        
+        // Load inventory from storage
         const loadInventory = async () => {
+            if (storageMode === 'cloud' && currentUser && isOnline) {
+                await loadFromCloud();
+            } else {
+                loadFromLocalStorage();
+            }
+            
+            updateInventoryDisplay();
+        };
+        
+        // Load inventory from Firebase
+        const loadFromCloud = async () => {
             updateSyncStatus('syncing');
             
             try {
-                // Try to load from cloud first if online
-                if (isOnline) {
-                    const itemsRef = getItemsRef();
+                const itemsRef = getItemsRef();
+                
+                if (itemsRef) {
+                    const snapshot = await itemsRef.once('value');
+                    const data = snapshot.val();
                     
-                    if (itemsRef) {
-                        const snapshot = await itemsRef.once('value');
-                        const data = snapshot.val();
+                    if (data) {
+                        // Convert object to array
+                        inventory = Object.keys(data).map(key => ({
+                            ...data[key],
+                            syncStatus: 'synced'
+                        }));
                         
-                        if (data) {
-                            // Convert object to array
-                            inventory = Object.keys(data).map(key => ({
-                                ...data[key],
-                                syncStatus: 'synced'
-                            }));
-                            
-                            // Load images
-                            for (const item of inventory) {
-                                if (item.hasImage) {
-                                    try {
-                                        const imageUrl = await getStorageRef().child(`images/${item.id}`).getDownloadURL();
-                                        item.image = imageUrl;
-                                    } catch (error) {
-                                        console.warn(`Failed to load image for item ${item.id}:`, error);
-                                        item.image = null;
-                                    }
+                        // Load images
+                        for (const item of inventory) {
+                            if (item.hasImage) {
+                                try {
+                                    const imageUrl = await getStorageRef().child(`images/${item.id}`).getDownloadURL();
+                                    item.image = imageUrl;
+                                } catch (error) {
+                                    console.warn(`Failed to load image for item ${item.id}:`, error);
+                                    item.image = null;
                                 }
                             }
-                            
-                            updateSyncStatus('online');
-                            showToast('Inventory loaded from cloud', 'success');
-                        } else {
-                            // No data in cloud, check local storage
-                            loadFromLocalStorage();
                         }
+                        
+                        // Save to local storage as backup
+                        saveToLocalStorage();
+                        
+                        updateSyncStatus('online');
+                        showToast('Inventory loaded from cloud', 'success');
+                    } else {
+                        // No data in cloud, check local storage
+                        loadFromLocalStorage();
                     }
-                } else {
-                    // Offline - load from local storage
-                    loadFromLocalStorage();
                 }
             } catch (error) {
-                console.error('Error loading inventory:', error);
+                console.error('Error loading inventory from cloud:', error);
                 showToast('Error loading inventory from cloud', 'error');
                 
                 // Fallback to local storage
                 loadFromLocalStorage();
             }
-            
-            updateInventoryDisplay();
         };
         
         // Load inventory from local storage
@@ -977,10 +1359,15 @@
             }
         };
         
-        // Save inventory to Firebase
+        // Save inventory
         const saveInventory = async (item, changeType = 'add') => {
             // Always save to local storage for offline support
             saveToLocalStorage();
+            
+            if (storageMode === 'local') {
+                // Just save locally
+                return;
+            }
             
             // Add to pending changes if offline
             if (!isOnline || !currentUser) {
@@ -1007,7 +1394,7 @@
         
         // Sync a single item
         const syncItem = async (item, changeType) => {
-            if (!currentUser || !isOnline) return false;
+            if (!currentUser || !isOnline || storageMode !== 'cloud') return false;
             
             const itemsRef = getItemsRef();
             if (!itemsRef) return false;
@@ -1092,7 +1479,7 @@
         
         // Sync all pending changes
         const syncPendingChanges = async () => {
-            if (!currentUser || !isOnline || pendingChanges.length === 0 || isSyncing) return;
+            if (!currentUser || !isOnline || pendingChanges.length === 0 || isSyncing || storageMode !== 'cloud') return;
             
             isSyncing = true;
             updateSyncStatus('syncing');
@@ -1131,6 +1518,8 @@
         
         // Update sync status display
         const updateSyncStatus = (status = null) => {
+            if (storageMode !== 'cloud') return;
+            
             const syncStatus = document.getElementById('sync-status');
             const syncText = document.getElementById('sync-text');
             
@@ -1280,7 +1669,7 @@
                         quantity,
                         image: imageData,
                         createdAt: new Date().toISOString(),
-                        syncStatus: 'pending'
+                        syncStatus: storageMode === 'cloud' ? 'pending' : 'synced'
                     };
                     
                     // Add to inventory
@@ -1315,6 +1704,7 @@
             const importDataBtn = document.getElementById('import-data');
             const importFileInput = document.getElementById('import-file');
             const clearDataBtn = document.getElementById('clear-data');
+            const firebaseConfigLink = document.getElementById('firebase-config-link');
             
             exportDataBtn?.addEventListener('click', exportInventory);
             importDataBtn?.addEventListener('click', () => importFileInput.click());
@@ -1325,6 +1715,11 @@
                     'Are you sure you want to delete all inventory data? This action cannot be undone.',
                     clearInventory
                 );
+            });
+            
+            firebaseConfigLink?.addEventListener('click', (e) => {
+                e.preventDefault();
+                showFirebaseSetup();
             });
             
             // Get Started options
@@ -1419,7 +1814,10 @@
             if (index !== -1) {
                 const newQuantity = Math.max(0, inventory[index].quantity + change);
                 inventory[index].quantity = newQuantity;
-                inventory[index].syncStatus = 'pending';
+                
+                if (storageMode === 'cloud') {
+                    inventory[index].syncStatus = 'pending';
+                }
                 
                 // Update display
                 const quantityElement = document.querySelector(`#item-${id} .item-quantity`);
@@ -1501,30 +1899,32 @@
                 
                 // Create sync status indicator
                 let syncIndicator = '';
-                if (item.syncStatus === 'pending') {
-                    syncIndicator = `
-                        <div class="sync-indicator sync-pending" title="Waiting to sync">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                    `;
-                } else if (item.syncStatus === 'error') {
-                    syncIndicator = `
-                        <div class="sync-indicator sync-error" title="Sync failed">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                        </div>
-                    `;
-                } else {
-                    syncIndicator = `
-                        <div class="sync-indicator sync-success" title="Synced to cloud">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                    `;
+                if (storageMode === 'cloud') {
+                    if (item.syncStatus === 'pending') {
+                        syncIndicator = `
+                            <div class="sync-indicator sync-pending" title="Waiting to sync">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        `;
+                    } else if (item.syncStatus === 'error') {
+                        syncIndicator = `
+                            <div class="sync-indicator sync-error" title="Sync failed">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                        `;
+                    } else {
+                        syncIndicator = `
+                            <div class="sync-indicator sync-success" title="Synced to cloud">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                        `;
+                    }
                 }
                 
                 itemElement.innerHTML = `
@@ -1796,13 +2196,13 @@
                                     quantity: item.quantity || 0,
                                     image: item.image || null,
                                     createdAt: item.createdAt || new Date().toISOString(),
-                                    syncStatus: 'pending'
+                                    syncStatus: storageMode === 'cloud' ? 'pending' : 'synced'
                                 };
                                 
                                 // Add to inventory
                                 inventory.push(newItem);
                                 
-                                // Save to cloud
+                                // Save to storage
                                 await saveInventory(newItem, 'add');
                             }
                             
@@ -1830,43 +2230,43 @@
         
         // Clear inventory
         const clearInventory = async () => {
-            if (!currentUser) {
-                inventory = [];
-                saveToLocalStorage();
-                updateInventoryDisplay();
-                showToast('All inventory data cleared locally', 'info');
-                return;
-            }
-            
-            try {
-                updateSyncStatus('syncing');
-                
-                // Clear from cloud
-                await getItemsRef().remove();
-                
-                // Try to delete all images
-                for (const item of inventory) {
-                    if (item.hasImage) {
-                        try {
-                            await getStorageRef().child(`images/${item.id}`).delete();
-                        } catch (error) {
-                            console.warn(`Failed to delete image for item ${item.id}:`, error);
+            if (storageMode === 'cloud' && currentUser && isOnline) {
+                try {
+                    updateSyncStatus('syncing');
+                    
+                    // Clear from cloud
+                    await getItemsRef().remove();
+                    
+                    // Try to delete all images
+                    for (const item of inventory) {
+                        if (item.hasImage) {
+                            try {
+                                await getStorageRef().child(`images/${item.id}`).delete();
+                            } catch (error) {
+                                console.warn(`Failed to delete image for item ${item.id}:`, error);
+                            }
                         }
                     }
+                    
+                    // Clear local inventory
+                    inventory = [];
+                    pendingChanges = [];
+                    saveToLocalStorage();
+                    updateInventoryDisplay();
+                    
+                    updateSyncStatus('online');
+                    showToast('All inventory data cleared', 'info');
+                } catch (error) {
+                    console.error('Error clearing inventory:', error);
+                    showToast('Error clearing inventory data', 'error');
+                    updateSyncStatus('error');
                 }
-                
-                // Clear local inventory
+            } else {
+                // Local mode or offline
                 inventory = [];
-                pendingChanges = [];
                 saveToLocalStorage();
                 updateInventoryDisplay();
-                
-                updateSyncStatus('online');
                 showToast('All inventory data cleared', 'info');
-            } catch (error) {
-                console.error('Error clearing inventory:', error);
-                showToast('Error clearing inventory data', 'error');
-                updateSyncStatus('error');
             }
         };
         
@@ -1877,7 +2277,7 @@
         
         // Periodic sync check
         setInterval(() => {
-            if (isOnline && pendingChanges.length > 0 && currentUser && !isSyncing) {
+            if (isOnline && pendingChanges.length > 0 && currentUser && !isSyncing && storageMode === 'cloud') {
                 syncPendingChanges();
             }
         }, 30000); // Check every 30 seconds
