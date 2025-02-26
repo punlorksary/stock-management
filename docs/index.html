@@ -8,8 +8,13 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.8.0/flowbite.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.8.0/flowbite.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
     <style>
         :root {
             --primary-color: #5D5CDE;
@@ -282,75 +287,6 @@
             word-break: break-all;
         }
 
-        /* Export/Sync panel */
-        .qr-code-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 1rem;
-        }
-
-        .tab-container {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-
-        .tab {
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-        }
-
-        .tab.active {
-            border-bottom-color: var(--primary-color);
-            color: var(--primary-color);
-            font-weight: 600;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .copy-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.5rem 1rem;
-            background-color: #e5e7eb;
-            color: #1f2937;
-            border-radius: 0.25rem;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .copy-btn:hover {
-            background-color: #d1d5db;
-        }
-
-        .copy-btn svg {
-            width: 1rem;
-            height: 1rem;
-            margin-right: 0.25rem;
-        }
-
-        .data-input {
-            width: 100%;
-            height: 120px;
-            padding: 0.5rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.25rem;
-            margin-bottom: 1rem;
-            font-family: monospace;
-            font-size: 0.875rem;
-        }
-        
         /* Get started section */
         .get-started-option {
             display: flex;
@@ -384,208 +320,351 @@
             font-size: 0.875rem;
             color: #6b7280;
         }
+        
+        /* Authentication Form */
+        .auth-form {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            background-color: var(--card-bg);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .auth-form input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+        }
+        
+        .auth-form button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .auth-form button:hover {
+            background-color: #4b4abf;
+        }
+        
+        .auth-toggle {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+        
+        .auth-toggle button {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            padding: 0;
+            font-size: 0.875rem;
+        }
+        
+        .auth-toggle button:hover {
+            text-decoration: underline;
+        }
+        
+        /* User Profile */
+        .user-profile {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            background-color: var(--card-bg);
+            transition: background-color 0.2s;
+        }
+        
+        .user-profile:hover {
+            background-color: rgba(93, 92, 222, 0.1);
+        }
+        
+        .user-avatar {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+        
+        .user-profile-info {
+            overflow: hidden;
+        }
+        
+        .user-email {
+            font-size: 0.75rem;
+            color: #6b7280;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+        
+        /* Sync indicators */
+        .sync-indicator {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 0.5rem;
+            font-size: 0.75rem;
+        }
+        
+        .sync-indicator svg {
+            margin-right: 0.25rem;
+        }
+        
+        .sync-success {
+            color: #10b981;
+        }
+        
+        .sync-pending {
+            color: #f59e0b;
+        }
+        
+        .sync-error {
+            color: #ef4444;
+        }
     </style>
 </head>
 <body>
     <div class="container mx-auto px-4 py-8 max-w-5xl">
-        <h1 class="text-3xl font-bold mb-2 text-center">Stock Management</h1>
-        <div class="flex justify-center items-center mb-6">
-            <div id="sync-status" class="sync-status sync-offline">
-                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" transform="rotate(180, 10, 10)"></path>
-                </svg>
-                Offline
-            </div>
+        <div id="auth-container">
+            <!-- Authentication form will be inserted here -->
         </div>
         
-        <!-- Add Item Form -->
-        <div class="mb-8 p-6 rounded-lg shadow-md item-card">
-            <h2 class="text-xl font-semibold mb-4">Add New Item</h2>
-            <form id="add-item-form" class="space-y-4">
-                <div class="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="item-name" class="block mb-2 text-sm font-medium">Item Name</label>
-                        <input type="text" id="item-name" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter item name" required>
-                    </div>
-                    
-                    <div>
-                        <label for="item-quantity" class="block mb-2 text-sm font-medium">Quantity</label>
-                        <input type="number" id="item-quantity" min="0" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter quantity" required>
-                    </div>
-                </div>
-                
-                <div>
-                    <label class="block mb-2 text-sm font-medium">Item Image</label>
-                    <div class="flex items-center space-x-4">
-                        <div id="image-preview-container" class="h-24 w-24 rounded-lg overflow-hidden image-placeholder">
-                            <span>Preview</span>
-                        </div>
-                        <div>
-                            <label for="item-image" class="custom-file-upload">
-                                <svg class="w-4 h-4 inline-block mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
-                                </svg>
-                                Upload Image
-                            </label>
-                            <input type="file" id="item-image" accept="image/*">
-                            <p class="text-xs mt-1 text-gray-500 dark:text-gray-400">Optional. PNG, JPG or GIF</p>
-                            <p id="image-size-warning" class="text-xs mt-1 text-red-500 hidden">Warning: Large images may cause storage issues</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="action-button-container bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mt-6">
-                    <button type="submit" class="w-full px-5 py-3 text-base font-medium text-center text-white bg-[var(--primary-color)] rounded-lg hover:bg-[#4b4abf] focus:ring-4 focus:outline-none focus:ring-blue-300 transition flex items-center justify-center">
-                        <span id="loading-indicator" class="hidden">
-                            <span class="loader"></span>
-                        </span>
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
-                        Add Item to Inventory
-                    </button>
-                    <div class="mt-2 text-sm text-center text-gray-500">Fill out the form above and click this button to add a new item</div>
-                </div>
-            </form>
-        </div>
-        
-        <!-- Storage Info -->
-        <div id="storage-info" class="mb-4 p-4 rounded-lg bg-blue-50 text-blue-800 flex items-center hidden">
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1v-3a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-            </svg>
-            <div>
-                <span class="font-medium">Storage Information:</span>
-                <div class="text-sm mt-1">
-                    <div>Used: <span id="storage-used">0 KB</span> of <span id="storage-quota">5 MB</span></div>
-                    <div class="w-full bg-blue-200 rounded-full h-2 mt-1">
-                        <div id="storage-bar" class="bg-blue-800 h-2 rounded-full" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Inventory Display -->
-        <div class="mb-8">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
-                <h2 class="text-xl font-semibold">Current Inventory</h2>
-                <div class="flex flex-col md:flex-row items-start md:items-center gap-2">
-                    <div id="storage-status" class="text-xs font-medium px-3 py-1 bg-yellow-100 text-yellow-800 rounded-md flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                        </svg>
-                        Checking storage...
-                    </div>
-                    <div id="item-count" class="text-sm font-medium px-3 py-1 bg-[var(--primary-color)] text-white rounded-full">
-                        0 items
-                    </div>
-                </div>
-            </div>
-            
-            <div id="no-items-message" class="text-center py-8 item-card rounded-lg">
-                <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                </svg>
-                <p class="mt-4 text-gray-500 dark:text-gray-400">Your inventory is empty.</p>
-                
-                <!-- Get Started Section -->
-                <div class="mt-8 max-w-md mx-auto">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Get Started</h3>
-                    
-                    <div class="get-started-option" id="option-input-code">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.875 14.25l1.214 1.942a2.25 2.25 0 001.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 011.872 1.002l.164.246a2.25 2.25 0 001.872 1.002h2.092a2.25 2.25 0 001.872-1.002l.164-.246A2.25 2.25 0 0116.954 9h4.636M2.41 9a2.25 2.25 0 00-.16.832V12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 12V9.832c0-.287-.055-.57-.16-.832M2.41 9a2.25 2.25 0 01.382-.632l3.285-3.832a2.25 2.25 0 011.708-.786h8.43c.657 0 1.281.287 1.709.786l3.284 3.832c.163.19.291.404.382.632M4.5 20.25h15A2.25 2.25 0 0021.75 18v-2.625c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125V18a2.25 2.25 0 002.25 2.25z" />
-                        </svg>
-                        <div class="get-started-option-content">
-                            <h3>Import Existing Inventory</h3>
-                            <p>Enter a text code or scan a QR code from another device</p>
-                        </div>
-                    </div>
-                    
-                    <div class="get-started-option" id="option-add-items">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                        <div class="get-started-option-content">
-                            <h3>Add Items Manually</h3>
-                            <p>Start by adding new items to your inventory</p>
-                        </div>
-                    </div>
-                    
-                    <div class="get-started-option" id="option-demo-data">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                        </svg>
-                        <div class="get-started-option-content">
-                            <h3>Load Demo Data</h3>
-                            <p>Try out the app with sample inventory items</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Items will be added here dynamically -->
-            </div>
-        </div>
-        
-        <!-- Tools -->
-        <div class="mb-8">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold">Tools</h2>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <button id="export-data" class="p-4 rounded-lg shadow-md bg-green-100 text-green-800 hover:bg-green-200 transition flex items-center justify-center">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                    </svg>
-                    Export Data
-                </button>
-                
-                <div class="relative">
-                    <input type="file" id="import-file" class="hidden" accept=".json">
-                    <button id="import-data" class="p-4 w-full rounded-lg shadow-md bg-blue-100 text-blue-800 hover:bg-blue-200 transition flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+        <div id="app-container" class="hidden">
+            <header class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-bold">Stock Management</h1>
+                <div class="flex items-center">
+                    <div id="sync-status" class="sync-status sync-offline mr-2">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" transform="rotate(180, 10, 10)"></path>
                         </svg>
-                        Import Data
+                        <span id="sync-text">Offline</span>
+                    </div>
+                    <div class="user-profile" id="user-profile">
+                        <div class="user-avatar" id="user-avatar"></div>
+                        <div class="user-profile-info">
+                            <div class="user-name" id="user-name">User</div>
+                            <div class="user-email" id="user-email"></div>
+                        </div>
+                    </div>
+                    <button id="logout-btn" class="ml-2 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
                     </button>
                 </div>
-                
-                <button id="share-data" class="p-4 rounded-lg shadow-md bg-purple-100 text-purple-800 hover:bg-purple-200 transition flex items-center justify-center">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" clip-rule="evenodd"></path>
-                    </svg>
-                    Share Data
-                </button>
-                
-                <button id="clear-data" class="p-4 rounded-lg shadow-md bg-red-100 text-red-800 hover:bg-red-200 transition flex items-center justify-center">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                    </svg>
-                    Clear All Data
-                </button>
+            </header>
+            
+            <!-- Add Item Form -->
+            <div class="mb-8 p-6 rounded-lg shadow-md item-card">
+                <h2 class="text-xl font-semibold mb-4">Add New Item</h2>
+                <form id="add-item-form" class="space-y-4">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="item-name" class="block mb-2 text-sm font-medium">Item Name</label>
+                            <input type="text" id="item-name" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter item name" required>
+                        </div>
+                        
+                        <div>
+                            <label for="item-quantity" class="block mb-2 text-sm font-medium">Quantity</label>
+                            <input type="number" id="item-quantity" min="0" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter quantity" required>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block mb-2 text-sm font-medium">Item Image</label>
+                        <div class="flex items-center space-x-4">
+                            <div id="image-preview-container" class="h-24 w-24 rounded-lg overflow-hidden image-placeholder">
+                                <span>Preview</span>
+                            </div>
+                            <div>
+                                <label for="item-image" class="custom-file-upload">
+                                    <svg class="w-4 h-4 inline-block mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Upload Image
+                                </label>
+                                <input type="file" id="item-image" accept="image/*">
+                                <p class="text-xs mt-1 text-gray-500 dark:text-gray-400">Optional. PNG, JPG or GIF</p>
+                                <p id="image-size-warning" class="text-xs mt-1 text-red-500 hidden">Warning: Large images may cause storage issues</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-button-container bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mt-6">
+                        <button type="submit" class="w-full px-5 py-3 text-base font-medium text-center text-white bg-[var(--primary-color)] rounded-lg hover:bg-[#4b4abf] focus:ring-4 focus:outline-none focus:ring-blue-300 transition flex items-center justify-center">
+                            <span id="loading-indicator" class="hidden">
+                                <span class="loader"></span>
+                            </span>
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Add Item to Inventory
+                        </button>
+                        <div class="mt-2 text-sm text-center text-gray-500">Fill out the form above and click this button to add a new item</div>
+                    </div>
+                </form>
             </div>
+            
+            <!-- Inventory Display -->
+            <div class="mb-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
+                    <h2 class="text-xl font-semibold">Current Inventory</h2>
+                    <div class="flex flex-col md:flex-row items-start md:items-center gap-2">
+                        <div id="storage-status" class="text-xs font-medium px-3 py-1 bg-yellow-100 text-yellow-800 rounded-md flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                            Checking storage...
+                        </div>
+                        <div id="item-count" class="text-sm font-medium px-3 py-1 bg-[var(--primary-color)] text-white rounded-full">
+                            0 items
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="no-items-message" class="text-center py-8 item-card rounded-lg">
+                    <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                    </svg>
+                    <p class="mt-4 text-gray-500 dark:text-gray-400">Your inventory is empty.</p>
+                    
+                    <!-- Get Started Section -->
+                    <div class="mt-8 max-w-md mx-auto">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Get Started</h3>
+                        
+                        <div class="get-started-option" id="option-add-items">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                            <div class="get-started-option-content">
+                                <h3>Add Items Manually</h3>
+                                <p>Start by adding new items to your inventory</p>
+                            </div>
+                        </div>
+                        
+                        <div class="get-started-option" id="option-demo-data">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                            </svg>
+                            <div class="get-started-option-content">
+                                <h3>Load Demo Data</h3>
+                                <p>Try out the app with sample inventory items</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Items will be added here dynamically -->
+                </div>
+            </div>
+            
+            <!-- Tools -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Tools</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button id="export-data" class="p-4 rounded-lg shadow-md bg-green-100 text-green-800 hover:bg-green-200 transition flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                        Export Data
+                    </button>
+                    
+                    <div class="relative">
+                        <input type="file" id="import-file" class="hidden" accept=".json">
+                        <button id="import-data" class="p-4 w-full rounded-lg shadow-md bg-blue-100 text-blue-800 hover:bg-blue-200 transition flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" transform="rotate(180, 10, 10)"></path>
+                            </svg>
+                            Import Data
+                        </button>
+                    </div>
+                    
+                    <button id="clear-data" class="p-4 rounded-lg shadow-md bg-red-100 text-red-800 hover:bg-red-200 transition flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        Clear All Data
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <footer class="text-center text-gray-500 text-sm mt-8 pb-6">
+                <p>Stock Management App &copy; 2023</p>
+                <p class="mt-1">
+                    <a href="https://github.com/yourusername/stock-management" target="_blank" class="text-[var(--primary-color)] hover:underline">View on GitHub</a>
+                </p>
+            </footer>
         </div>
-        
-        <!-- Footer -->
-        <footer class="text-center text-gray-500 text-sm mt-8 pb-6">
-            <p>Stock Management App &copy; 2023</p>
-            <p class="mt-1">
-                <a href="https://github.com/yourusername/stock-management" target="_blank" class="text-[var(--primary-color)] hover:underline">View on GitHub</a>
-            </p>
-        </footer>
     </div>
 
     <script>
         // Constants
-        const MAX_LOCALSTORAGE_SIZE = 5 * 1024 * 1024; // 5MB approximate limit
         const IMAGE_QUALITY = 0.7; // JPEG compression quality
         const MAX_IMAGE_DIMENSION = 800; // Maximum width or height for images
-        const STORAGE_KEY = 'stockInventory';
-        const MAX_RETRIES = 3; // Maximum number of API call retries
+        const LOCAL_STORAGE_KEY = 'stockInventory_local';
 
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8yS72B3LU8GqZ-ttCeQFXZYdWrW3Y94c",
+            authDomain: "stock-manager-app-80e3e.firebaseapp.com",
+            databaseURL: "https://stock-manager-app-80e3e-default-rtdb.firebaseio.com",
+            projectId: "stock-manager-app-80e3e",
+            storageBucket: "stock-manager-app-80e3e.appspot.com",
+            messagingSenderId: "564121500326",
+            appId: "1:564121500326:web:5d7f7fbfb85fb3b6b0e3c7"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        
+        // Firebase services
+        const auth = firebase.auth();
+        const database = firebase.database();
+        const storage = firebase.storage();
+        
+        // State
+        let inventory = [];
+        let currentUser = null;
+        let isOnline = navigator.onLine;
+        let pendingChanges = [];
+        let isSyncing = false;
+        let localStorageAvailable = false;
+        let toastTimeout = null;
+        
+        // Get items reference for the current user
+        const getItemsRef = () => {
+            if (!currentUser) return null;
+            return database.ref(`users/${currentUser.uid}/items`);
+        };
+        
+        // Get storage reference for the current user
+        const getStorageRef = () => {
+            if (!currentUser) return null;
+            return storage.ref(`users/${currentUser.uid}`);
+        };
+        
         // Demo data
         const DEMO_INVENTORY = [
             {
@@ -593,824 +672,553 @@
                 name: 'Notebook A5',
                 quantity: 15,
                 createdAt: new Date().toISOString(),
-                image: null
+                image: null,
+                syncStatus: 'synced'
             },
             {
                 id: 'demo2',
                 name: 'Blue Pens (Box)',
                 quantity: 8,
                 createdAt: new Date().toISOString(),
-                image: null
+                image: null,
+                syncStatus: 'synced'
             },
             {
                 id: 'demo3',
                 name: 'Desk Lamp',
                 quantity: 3,
                 createdAt: new Date().toISOString(),
-                image: null
+                image: null,
+                syncStatus: 'synced'
             },
             {
                 id: 'demo4',
                 name: 'USB Cable',
                 quantity: 12,
                 createdAt: new Date().toISOString(),
-                image: null
+                image: null,
+                syncStatus: 'synced'
             },
             {
                 id: 'demo5',
                 name: 'Coffee Mug',
                 quantity: 5,
                 createdAt: new Date().toISOString(),
-                image: null
+                image: null,
+                syncStatus: 'synced'
             },
             {
                 id: 'demo6',
                 name: 'Wireless Mouse',
                 quantity: 2,
                 createdAt: new Date().toISOString(),
-                image: null
+                image: null,
+                syncStatus: 'synced'
             }
         ];
 
-        // State
-        let inventory = [];
-        let storageAvailable = false;
-        let toastTimeout = null;
-
-        // DOM Elements
+        // DOM ready handler
         document.addEventListener('DOMContentLoaded', () => {
-            // Initialize the app
-            loadInventory();
-            setupEventListeners();
-            updateStorageInfo();
-        });
-
-        // Fetch with retry functionality
-        const fetchWithRetry = async (url, options = {}, maxRetries = MAX_RETRIES) => {
-            let lastError = null;
+            checkLocalStorageAvailability();
+            setupAuthUI();
+            setupNetworkListeners();
             
-            for (let attempt = 0; attempt < maxRetries; attempt++) {
-                try {
-                    // Attempt the fetch request
-                    const response = await fetch(url, options);
-                    
-                    // If response is not ok, throw an error
-                    if (!response.ok) {
-                        let errorMessage = `HTTP error! Status: ${response.status}`;
-                        try {
-                            const errorData = await response.json();
-                            if (errorData && errorData.error) {
-                                errorMessage = errorData.error;
-                            }
-                        } catch (e) {
-                            // If we can't parse the error as JSON, just use the default message
-                        }
-                        throw new Error(errorMessage);
-                    }
-                    
-                    // Return the successful response
-                    return response;
-                } catch (error) {
-                    console.warn(`Attempt ${attempt + 1} failed: ${error.message}`);
-                    lastError = error;
-                    
-                    // Calculate exponential backoff delay: 2^attempt * 100ms
-                    const delay = Math.min(Math.pow(2, attempt) * 100, 2000);
-                    
-                    // Wait before retrying
-                    await new Promise(resolve => setTimeout(resolve, delay));
+            // Check if user is already logged in
+            auth.onAuthStateChanged((user) => {
+                currentUser = user;
+                if (user) {
+                    showApp();
+                    updateUserProfile();
+                    loadInventory();
+                    setupEventListeners();
+                } else {
+                    showAuth();
                 }
-            }
-            
-            // If all retries failed, throw the last error
-            throw new Error(`Failed after ${maxRetries} attempts: ${lastError ? lastError.message : 'Unknown error'}`);
-        };
-
-        // Check if storage is available
-        const checkStorageAvailability = () => {
+            });
+        });
+        
+        // Check if local storage is available
+        const checkLocalStorageAvailability = () => {
             try {
                 const testKey = '__storage_test__';
                 localStorage.setItem(testKey, testKey);
                 localStorage.removeItem(testKey);
-                return true;
+                localStorageAvailable = true;
             } catch (e) {
-                return false;
+                localStorageAvailable = false;
             }
         };
-
-        // Get storage usage information
-        const getStorageInfo = () => {
-            if (!storageAvailable) return { used: 0, quota: 0, percentage: 0 };
-            
-            let used = 0;
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                const value = localStorage.getItem(key);
-                used += (key.length + value.length) * 2; // UTF-16 characters are 2 bytes each
-            }
-            
-            return {
-                used,
-                quota: MAX_LOCALSTORAGE_SIZE,
-                percentage: (used / MAX_LOCALSTORAGE_SIZE) * 100
-            };
+        
+        // Setup network status listeners
+        const setupNetworkListeners = () => {
+            window.addEventListener('online', handleNetworkChange);
+            window.addEventListener('offline', handleNetworkChange);
         };
-
-        // Update storage info display
-        const updateStorageInfo = () => {
-            const storageInfo = document.getElementById('storage-info');
-            const storageUsed = document.getElementById('storage-used');
-            const storageQuota = document.getElementById('storage-quota');
-            const storageBar = document.getElementById('storage-bar');
+        
+        // Handle network status changes
+        const handleNetworkChange = () => {
+            isOnline = navigator.onLine;
+            updateSyncStatus();
             
-            if (!storageAvailable) {
-                storageInfo.classList.add('hidden');
-                return;
+            if (isOnline && pendingChanges.length > 0 && currentUser) {
+                syncPendingChanges();
             }
-            
-            const info = getStorageInfo();
-            
-            // Format sizes for display
-            const usedFormatted = info.used < 1024 ? 
-                `${info.used} B` : 
-                info.used < 1024 * 1024 ? 
-                    `${(info.used / 1024).toFixed(1)} KB` : 
-                    `${(info.used / (1024 * 1024)).toFixed(1)} MB`;
+        };
+        
+        // Setup authentication UI
+        const setupAuthUI = () => {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.innerHTML = `
+                <div class="auth-form">
+                    <h2 class="text-2xl font-bold mb-6 text-center">Stock Management</h2>
                     
-            const quotaFormatted = `${(info.quota / (1024 * 1024)).toFixed(0)} MB`;
-            
-            // Update display
-            storageUsed.textContent = usedFormatted;
-            storageQuota.textContent = quotaFormatted;
-            storageBar.style.width = `${Math.min(info.percentage, 100)}%`;
-            
-            // Set bar color based on usage
-            if (info.percentage > 90) {
-                storageBar.classList.remove('bg-blue-800', 'bg-yellow-500');
-                storageBar.classList.add('bg-red-600');
-            } else if (info.percentage > 70) {
-                storageBar.classList.remove('bg-blue-800', 'bg-red-600');
-                storageBar.classList.add('bg-yellow-500');
-            } else {
-                storageBar.classList.remove('bg-yellow-500', 'bg-red-600');
-                storageBar.classList.add('bg-blue-800');
-            }
-            
-            // Show storage info
-            storageInfo.classList.remove('hidden');
-            
-            // Show warning if close to limit
-            if (info.percentage > 85) {
-                showToast('Warning: Running low on storage space. Consider exporting and clearing data.', 'warning');
-            }
-        };
-
-        // Load inventory from storage
-        const loadInventory = () => {
-            storageAvailable = checkStorageAvailability();
-            
-            if (storageAvailable) {
-                try {
-                    const storedInventory = localStorage.getItem(STORAGE_KEY);
-                    if (storedInventory) {
-                        inventory = JSON.parse(storedInventory);
-                    }
-                    showStorageStatus(true);
-                } catch (error) {
-                    console.error('Error loading from storage:', error);
-                    showStorageStatus(false, 'Error loading data');
-                }
-            } else {
-                showStorageStatus(false);
-            }
-            
-            updateInventoryDisplay();
-        };
-
-        // Save inventory to storage
-        const saveInventory = () => {
-            if (storageAvailable) {
-                try {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
-                    showStorageStatus(true, 'Data saved');
-                    updateStorageInfo();
-                } catch (error) {
-                    console.error('Error saving to storage:', error);
-                    if (error.name === 'QuotaExceededError' || error.code === 22) {
-                        showStorageStatus(false, 'Storage quota exceeded');
-                        showToast('Storage quota exceeded. Try removing some items or images.', 'error');
-                    } else {
-                        showStorageStatus(false, 'Error saving data');
-                    }
-                }
-            }
-        };
-
-        // Show input code modal
-        const showInputCodeModal = () => {
-            // Create modal overlay
-            const overlay = document.createElement('div');
-            overlay.className = 'modal-overlay';
-            
-            overlay.innerHTML = `
-                <div class="modal-content">
-                    <h3 class="text-xl font-semibold mb-2">Import Inventory Data</h3>
-                    <p class="mb-4">Paste a text code or scan a QR code to import inventory data:</p>
-                    
-                    <div class="tab-container">
-                        <div class="tab active" data-tab="text">Text Code</div>
-                        <div class="tab" data-tab="qr">QR Code</div>
-                    </div>
-                    
-                    <div class="tab-content active" data-tab="text">
-                        <p class="text-sm mb-2">Paste the text code from another device:</p>
-                        <textarea id="import-data-input" class="data-input" placeholder="Paste the code here..."></textarea>
-                        <button id="import-data-btn" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition w-full">
-                            Import Data
-                        </button>
-                    </div>
-                    
-                    <div class="tab-content" data-tab="qr">
-                        <p class="text-sm mb-2">Scan a QR code using your device's camera:</p>
-                        <p class="text-sm text-gray-500 mb-4">Note: You'll need to give camera permission to your browser.</p>
+                    <div id="login-form">
+                        <h3 class="text-lg font-semibold mb-4">Log In</h3>
+                        <input type="email" id="login-email" placeholder="Email" required>
+                        <input type="password" id="login-password" placeholder="Password" required>
+                        <button id="login-button" type="button">Log In</button>
                         
-                        <div class="text-center">
-                            <button id="start-scan-btn" class="px-4 py-2 bg-[var(--primary-color)] text-white rounded hover:bg-[#4b4abf] transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                Start Camera Scan
-                            </button>
-                        </div>
-                        
-                        <div id="qr-reader-container" class="mt-4 hidden">
-                            <div id="qr-reader" class="border rounded-lg overflow-hidden"></div>
-                            <p id="qr-error" class="text-red-500 text-sm mt-2 hidden">Error accessing camera. Please check permissions.</p>
+                        <div class="auth-toggle mt-4">
+                            <p>Don't have an account? <button id="show-signup">Sign Up</button></p>
                         </div>
                     </div>
                     
-                    <div class="flex justify-end mt-4">
-                        <button id="modal-close" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition">
-                            Cancel
-                        </button>
+                    <div id="signup-form" class="hidden">
+                        <h3 class="text-lg font-semibold mb-4">Sign Up</h3>
+                        <input type="email" id="signup-email" placeholder="Email" required>
+                        <input type="password" id="signup-password" placeholder="Password (min 6 characters)" required>
+                        <button id="signup-button" type="button">Sign Up</button>
+                        
+                        <div class="auth-toggle mt-4">
+                            <p>Already have an account? <button id="show-login">Log In</button></p>
+                        </div>
                     </div>
                 </div>
             `;
             
-            // Add to DOM
-            document.body.appendChild(overlay);
-            
-            // Trigger animation
-            setTimeout(() => {
-                overlay.classList.add('show');
-            }, 10);
-            
-            // Set up tab functionality
-            const tabs = overlay.querySelectorAll('.tab');
-            const tabContents = overlay.querySelectorAll('.tab-content');
-            
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    const tabName = tab.getAttribute('data-tab');
-                    
-                    // Update active tab
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    
-                    // Update active content
-                    tabContents.forEach(content => {
-                        content.classList.remove('active');
-                        if (content.getAttribute('data-tab') === tabName) {
-                            content.classList.add('active');
-                        }
-                    });
-                });
+            // Add event listeners
+            document.getElementById('login-button').addEventListener('click', handleLogin);
+            document.getElementById('signup-button').addEventListener('click', handleSignup);
+            document.getElementById('show-signup').addEventListener('click', () => {
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('signup-form').classList.remove('hidden');
             });
-            
-            // Set up event listeners
-            const closeBtn = overlay.querySelector('#modal-close');
-            const importDataBtn = overlay.querySelector('#import-data-btn');
-            const startScanBtn = overlay.querySelector('#start-scan-btn');
-            
-            const closeModal = () => {
-                overlay.classList.remove('show');
-                setTimeout(() => {
-                    overlay.remove();
-                }, 300);
-            };
-            
-            closeBtn.addEventListener('click', closeModal);
-            
-            importDataBtn.addEventListener('click', () => {
-                const importText = overlay.querySelector('#import-data-input').value.trim();
-                if (!importText) {
-                    showToast('Please paste a valid data code', 'warning');
-                    return;
-                }
-                
-                try {
-                    // Decompress the data
-                    const decompressedData = LZString.decompressFromBase64(importText);
-                    const importedData = JSON.parse(decompressedData);
-                    
-                    if (!Array.isArray(importedData)) {
-                        throw new Error('Invalid inventory data format');
-                    }
-                    
-                    // Add imported items
-                    let newItemCount = 0;
-                    importedData.forEach(importedItem => {
-                        // Check if item already exists (by ID)
-                        const existingItemIndex = inventory.findIndex(item => item.id === importedItem.id);
-                        
-                        if (existingItemIndex === -1) {
-                            // New item
-                            inventory.push({
-                                ...importedItem,
-                                // Make sure it has required fields
-                                id: importedItem.id || generateId(),
-                                createdAt: importedItem.createdAt || new Date().toISOString()
-                            });
-                            newItemCount++;
-                        } else {
-                            // Update existing item (quantity only)
-                            inventory[existingItemIndex].quantity = importedItem.quantity;
-                        }
-                    });
-                    
-                    // Save and update
-                    saveInventory();
-                    updateInventoryDisplay();
-                    
-                    closeModal();
-                    showToast(`Imported ${newItemCount} new items successfully`, 'success');
-                } catch (error) {
-                    console.error('Import error:', error);
-                    showToast('Error importing data: Invalid or corrupted code', 'error');
-                }
-            });
-            
-            // QR code scanning logic
-            startScanBtn.addEventListener('click', () => {
-                const qrReaderContainer = document.getElementById('qr-reader-container');
-                const qrReader = document.getElementById('qr-reader');
-                const qrError = document.getElementById('qr-error');
-                
-                qrReaderContainer.classList.remove('hidden');
-                qrError.classList.add('hidden');
-                
-                // Load HTML5 QR code scanner dynamically
-                const script = document.createElement('script');
-                script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-                script.onload = function() {
-                    // Initialize QR code scanner
-                    const html5QrCode = new Html5Qrcode("qr-reader");
-                    const qrCodeSuccessCallback = (decodedText) => {
-                        // Stop scanner
-                        html5QrCode.stop().then(() => {
-                            console.log('Scanner stopped successfully');
-                            
-                            try {
-                                // Decompress the data
-                                const decompressedData = LZString.decompressFromBase64(decodedText);
-                                const importedData = JSON.parse(decompressedData);
-                                
-                                if (!Array.isArray(importedData)) {
-                                    throw new Error('Invalid inventory data format');
-                                }
-                                
-                                // Add imported items
-                                let newItemCount = 0;
-                                importedData.forEach(importedItem => {
-                                    // Check if item already exists (by ID)
-                                    const existingItemIndex = inventory.findIndex(item => item.id === importedItem.id);
-                                    
-                                    if (existingItemIndex === -1) {
-                                        // New item
-                                        inventory.push({
-                                            ...importedItem,
-                                            // Make sure it has required fields
-                                            id: importedItem.id || generateId(),
-                                            createdAt: importedItem.createdAt || new Date().toISOString()
-                                        });
-                                        newItemCount++;
-                                    } else {
-                                        // Update existing item (quantity only)
-                                        inventory[existingItemIndex].quantity = importedItem.quantity;
-                                    }
-                                });
-                                
-                                // Save and update
-                                saveInventory();
-                                updateInventoryDisplay();
-                                
-                                closeModal();
-                                showToast(`Imported ${newItemCount} new items successfully`, 'success');
-                            } catch (error) {
-                                console.error('Import error:', error);
-                                showToast('Error importing data: Invalid QR code', 'error');
-                            }
-                        }).catch((err) => {
-                            console.error('Error stopping scanner:', err);
-                        });
-                    };
-                    
-                    const qrScannerConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
-                    
-                    // Start scanner
-                    html5QrCode.start(
-                        { facingMode: "environment" },
-                        qrScannerConfig,
-                        qrCodeSuccessCallback,
-                        (errorMessage) => {
-                            // Error callback is continuous, so we don't need to do anything here
-                        }
-                    ).catch((err) => {
-                        console.error(`Error starting QR Code scanner: ${err}`);
-                        qrError.classList.remove('hidden');
-                        qrError.textContent = 'Error accessing camera. Please check permissions.';
-                    });
-                    
-                    // Update close modal function to stop scanner when modal is closed
-                    const originalCloseModal = closeModal;
-                    closeModal = () => {
-                        html5QrCode.stop().catch(err => console.error(err));
-                        originalCloseModal();
-                    };
-                };
-                
-                script.onerror = function() {
-                    qrError.classList.remove('hidden');
-                    qrError.textContent = 'Error loading QR code scanner. Please try again.';
-                };
-                
-                document.body.appendChild(script);
+            document.getElementById('show-login').addEventListener('click', () => {
+                document.getElementById('signup-form').classList.add('hidden');
+                document.getElementById('login-form').classList.remove('hidden');
             });
         };
-
-        // Load demo data
-        const loadDemoData = () => {
-            if (inventory.length > 0) {
-                showConfirmModal(
-                    'Load Demo Data',
-                    'This will add demo items to your existing inventory. Continue?',
-                    () => {
-                        // Add demo items
-                        inventory = [...inventory, ...DEMO_INVENTORY];
-                        saveInventory();
-                        updateInventoryDisplay();
-                        showToast('Demo data loaded successfully', 'success');
-                    }
-                );
-            } else {
-                // Add demo items
-                inventory = [...DEMO_INVENTORY];
-                saveInventory();
-                updateInventoryDisplay();
-                showToast('Demo data loaded successfully', 'success');
-            }
-        };
-
-        // Share data with text and QR code
-        const shareData = () => {
-            if (inventory.length === 0) {
-                showToast('No inventory data to share', 'warning');
+        
+        // Handle login
+        const handleLogin = async () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!email || !password) {
+                showToast('Please enter email and password', 'error');
                 return;
             }
             
             try {
-                // Create a simplified version of inventory for sharing (without images)
-                const simplifiedInventory = inventory.map(item => {
-                    return {
-                        id: item.id,
-                        name: item.name,
-                        quantity: item.quantity,
-                        createdAt: item.createdAt
-                    };
+                await auth.signInWithEmailAndPassword(email, password);
+                // Auth state change will trigger onAuthStateChanged
+            } catch (error) {
+                console.error('Login error:', error);
+                showToast(`Login failed: ${error.message}`, 'error');
+            }
+        };
+        
+        // Handle signup
+        const handleSignup = async () => {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            
+            if (!email || !password) {
+                showToast('Please enter email and password', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showToast('Password must be at least 6 characters', 'error');
+                return;
+            }
+            
+            try {
+                await auth.createUserWithEmailAndPassword(email, password);
+                // Auth state change will trigger onAuthStateChanged
+            } catch (error) {
+                console.error('Signup error:', error);
+                showToast(`Signup failed: ${error.message}`, 'error');
+            }
+        };
+        
+        // Show authentication UI
+        const showAuth = () => {
+            document.getElementById('auth-container').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('hidden');
+        };
+        
+        // Show app UI
+        const showApp = () => {
+            document.getElementById('auth-container').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+        };
+        
+        // Update user profile display
+        const updateUserProfile = () => {
+            if (!currentUser) return;
+            
+            const userAvatar = document.getElementById('user-avatar');
+            const userName = document.getElementById('user-name');
+            const userEmail = document.getElementById('user-email');
+            
+            // Set user initial in avatar
+            const initial = currentUser.email.charAt(0).toUpperCase();
+            userAvatar.textContent = initial;
+            
+            // Set user name/email
+            userName.textContent = currentUser.displayName || 'User';
+            userEmail.textContent = currentUser.email;
+            
+            // Setup logout button
+            document.getElementById('logout-btn').addEventListener('click', () => {
+                auth.signOut().catch(error => {
+                    console.error('Logout error:', error);
+                    showToast(`Logout failed: ${error.message}`, 'error');
                 });
-
-                // Convert to JSON string and compress
-                const dataJson = JSON.stringify(simplifiedInventory);
-                const compressedData = LZString.compressToBase64(dataJson);
-                
-                // Create modal for sharing options
-                const overlay = document.createElement('div');
-                overlay.className = 'modal-overlay';
-                
-                overlay.innerHTML = `
-                    <div class="modal-content">
-                        <h3 class="text-xl font-semibold mb-2">Share Inventory Data</h3>
-                        <p class="mb-4">Here are different ways to share your inventory data with another device (without images):</p>
+            });
+        };
+        
+        // Load inventory from Firebase
+        const loadInventory = async () => {
+            updateSyncStatus('syncing');
+            
+            try {
+                // Try to load from cloud first if online
+                if (isOnline) {
+                    const itemsRef = getItemsRef();
+                    
+                    if (itemsRef) {
+                        const snapshot = await itemsRef.once('value');
+                        const data = snapshot.val();
                         
-                        <div class="tab-container">
-                            <div class="tab active" data-tab="text">Text Code</div>
-                            <div class="tab" data-tab="qr">QR Code</div>
-                            <div class="tab" data-tab="import">Import</div>
-                        </div>
-                        
-                        <div class="tab-content active" data-tab="text">
-                            <p class="text-sm mb-2">Copy this code and paste it on another device:</p>
-                            <textarea class="data-input" readonly>${compressedData}</textarea>
-                            <button class="copy-btn" data-copy="${compressedData}">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
-                                </svg>
-                                Copy to Clipboard
-                            </button>
-                        </div>
-                        
-                        <div class="tab-content" data-tab="qr">
-                            <p class="text-sm mb-2">Scan this QR code with another device:</p>
-                            <div class="qr-code-container">
-                                <div id="qrcode"></div>
-                                <p class="mt-2 text-xs text-gray-500">Note: This QR code contains your inventory data without images.</p>
-                                <button id="download-qr" class="px-4 py-2 mt-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
-                                    Download QR
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="tab-content" data-tab="import">
-                            <p class="text-sm mb-2">Paste a code from another device:</p>
-                            <textarea id="import-data-input" class="data-input" placeholder="Paste the code here..."></textarea>
-                            <button id="import-data-btn" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition">
-                                Import Data
-                            </button>
-                        </div>
-                        
-                        <div class="flex justify-end mt-4">
-                            <button id="modal-close" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition">
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                // Add to DOM
-                document.body.appendChild(overlay);
-                
-                // Trigger animation
-                setTimeout(() => {
-                    overlay.classList.add('show');
-                }, 10);
-                
-                // Initialize QR code (but don't generate yet)
-                let qrcode = null;
-                
-                // Set up tab functionality
-                const tabs = document.querySelectorAll('.tab');
-                const tabContents = document.querySelectorAll('.tab-content');
-                
-                tabs.forEach(tab => {
-                    tab.addEventListener('click', () => {
-                        const tabName = tab.getAttribute('data-tab');
-                        
-                        // Update active tab
-                        tabs.forEach(t => t.classList.remove('active'));
-                        tab.classList.add('active');
-                        
-                        // Update active content
-                        tabContents.forEach(content => {
-                            content.classList.remove('active');
-                            if (content.getAttribute('data-tab') === tabName) {
-                                content.classList.add('active');
-                                
-                                // Generate QR code if tab is 'qr'
-                                if (tabName === 'qr' && !qrcode) {
+                        if (data) {
+                            // Convert object to array
+                            inventory = Object.keys(data).map(key => ({
+                                ...data[key],
+                                syncStatus: 'synced'
+                            }));
+                            
+                            // Load images
+                            for (const item of inventory) {
+                                if (item.hasImage) {
                                     try {
-                                        // Try to generate QR code with error correction L (low)
-                                        qrcode = generateQRCode(compressedData);
-                                        document.getElementById('qrcode').innerHTML = qrcode;
+                                        const imageUrl = await getStorageRef().child(`images/${item.id}`).getDownloadURL();
+                                        item.image = imageUrl;
                                     } catch (error) {
-                                        console.error('Error generating QR code:', error);
-                                        document.getElementById('qrcode').innerHTML = `
-                                            <div class="p-4 bg-red-100 text-red-800 rounded-lg">
-                                                <p>Could not generate QR code - data too large.</p>
-                                                <p class="text-sm mt-2">Please use the Text Code method instead.</p>
-                                            </div>
-                                        `;
+                                        console.warn(`Failed to load image for item ${item.id}:`, error);
+                                        item.image = null;
                                     }
                                 }
                             }
-                        });
-                    });
-                });
+                            
+                            updateSyncStatus('online');
+                            showToast('Inventory loaded from cloud', 'success');
+                        } else {
+                            // No data in cloud, check local storage
+                            loadFromLocalStorage();
+                        }
+                    }
+                } else {
+                    // Offline - load from local storage
+                    loadFromLocalStorage();
+                }
+            } catch (error) {
+                console.error('Error loading inventory:', error);
+                showToast('Error loading inventory from cloud', 'error');
                 
-                // Set up event listeners
-                const closeBtn = document.getElementById('modal-close');
-                const copyBtn = document.querySelector('.copy-btn');
-                const downloadBtn = document.getElementById('download-qr');
-                const importDataBtn = document.getElementById('import-data-btn');
-                
-                const closeModal = () => {
-                    overlay.classList.remove('show');
-                    setTimeout(() => {
-                        overlay.remove();
-                    }, 300);
-                };
-                
-                closeBtn.addEventListener('click', closeModal);
-                
-                copyBtn.addEventListener('click', () => {
-                    const textToCopy = copyBtn.getAttribute('data-copy');
-                    navigator.clipboard.writeText(textToCopy)
-                        .then(() => {
-                            copyBtn.innerHTML = `
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                </svg>
-                                Copied!
-                            `;
-                            setTimeout(() => {
-                                copyBtn.innerHTML = `
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
-                                    </svg>
-                                    Copy to Clipboard
-                                `;
-                            }, 2000);
-                        })
-                        .catch(err => {
-                            console.error('Error copying text: ', err);
-                            showToast('Failed to copy to clipboard', 'error');
-                        });
-                });
-                
-                if (downloadBtn) {
-                    downloadBtn.addEventListener('click', () => {
-                        // Get QR code image
-                        const qrImg = document.querySelector('#qrcode img');
-                        if (!qrImg) return;
-                        
-                        // Create a canvas to add a margin and title
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        const margin = 20;
-                        const title = 'Stock Management Inventory';
-                        
-                        // Set canvas size
-                        canvas.width = qrImg.width + (margin * 2);
-                        canvas.height = qrImg.height + (margin * 2) + 40; // Extra height for title
-                        
-                        // Fill background
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        
-                        // Add title
-                        ctx.fillStyle = '#000000';
-                        ctx.font = '16px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(title, canvas.width / 2, margin);
-                        
-                        // Draw QR code
-                        ctx.drawImage(qrImg, margin, margin + 20);
-                        
-                        // Get data URL
-                        const dataUrl = canvas.toDataURL('image/png');
-                        
-                        // Create link and trigger download
-                        const link = document.createElement('a');
-                        link.download = 'inventory_qr.png';
-                        link.href = dataUrl;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    });
+                // Fallback to local storage
+                loadFromLocalStorage();
+            }
+            
+            updateInventoryDisplay();
+        };
+        
+        // Load inventory from local storage
+        const loadFromLocalStorage = () => {
+            if (!localStorageAvailable) {
+                inventory = [];
+                return;
+            }
+            
+            try {
+                const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (localData) {
+                    inventory = JSON.parse(localData);
+                    updateSyncStatus('offline');
+                } else {
+                    inventory = [];
+                }
+            } catch (error) {
+                console.error('Error loading from local storage:', error);
+                inventory = [];
+            }
+        };
+        
+        // Save inventory to local storage
+        const saveToLocalStorage = () => {
+            if (!localStorageAvailable) return;
+            
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(inventory));
+            } catch (error) {
+                console.error('Error saving to local storage:', error);
+                showToast('Error saving to local storage', 'error');
+            }
+        };
+        
+        // Save inventory to Firebase
+        const saveInventory = async (item, changeType = 'add') => {
+            // Always save to local storage for offline support
+            saveToLocalStorage();
+            
+            // Add to pending changes if offline
+            if (!isOnline || !currentUser) {
+                // Mark item as pending
+                const itemIndex = inventory.findIndex(i => i.id === item.id);
+                if (itemIndex !== -1) {
+                    inventory[itemIndex].syncStatus = 'pending';
                 }
                 
-                importDataBtn.addEventListener('click', () => {
-                    const importText = document.getElementById('import-data-input').value.trim();
-                    if (!importText) {
-                        showToast('Please paste a valid data code', 'warning');
-                        return;
+                pendingChanges.push({
+                    item,
+                    changeType,
+                    timestamp: Date.now()
+                });
+                
+                updateSyncStatus('offline');
+                updateInventoryDisplay();
+                return;
+            }
+            
+            // If online, sync immediately
+            await syncItem(item, changeType);
+        };
+        
+        // Sync a single item
+        const syncItem = async (item, changeType) => {
+            if (!currentUser || !isOnline) return false;
+            
+            const itemsRef = getItemsRef();
+            if (!itemsRef) return false;
+            
+            updateSyncStatus('syncing');
+            
+            try {
+                // Handle image separately
+                let itemToSync = { ...item };
+                const hasImage = item.image && item.image.startsWith('data:');
+                
+                if (hasImage) {
+                    // It's a data URL, need to upload
+                    const imageRef = getStorageRef().child(`images/${item.id}`);
+                    const imageBlob = await dataURLToBlob(item.image);
+                    await imageRef.put(imageBlob);
+                    
+                    // Get the URL
+                    const imageUrl = await imageRef.getDownloadURL();
+                    
+                    // Replace data URL with download URL
+                    const itemIndex = inventory.findIndex(i => i.id === item.id);
+                    if (itemIndex !== -1) {
+                        inventory[itemIndex].image = imageUrl;
                     }
                     
-                    try {
-                        // Decompress the data
-                        const decompressedData = LZString.decompressFromBase64(importText);
-                        const importedData = JSON.parse(decompressedData);
-                        
-                        if (!Array.isArray(importedData)) {
-                            throw new Error('Invalid inventory data format');
-                        }
-                        
-                        // Add imported items
-                        let newItemCount = 0;
-                        importedData.forEach(importedItem => {
-                            // Check if item already exists (by ID)
-                            const existingItemIndex = inventory.findIndex(item => item.id === importedItem.id);
-                            
-                            if (existingItemIndex === -1) {
-                                // New item
-                                inventory.push({
-                                    ...importedItem,
-                                    // Make sure it has required fields
-                                    id: importedItem.id || generateId(),
-                                    createdAt: importedItem.createdAt || new Date().toISOString()
-                                });
-                                newItemCount++;
-                            } else {
-                                // Update existing item (quantity only)
-                                inventory[existingItemIndex].quantity = importedItem.quantity;
-                            }
-                        });
-                        
-                        // Save and update
-                        saveInventory();
-                        updateInventoryDisplay();
-                        
-                        closeModal();
-                        showToast(`Imported ${newItemCount} new items successfully`, 'success');
-                    } catch (error) {
-                        console.error('Import error:', error);
-                        showToast('Error importing data: Invalid or corrupted code', 'error');
-                    }
-                });
-                
-                showToast('Data sharing options ready', 'success');
-            } catch (error) {
-                console.error('Error sharing data:', error);
-                showToast('Error preparing data for sharing', 'error');
-            }
-        };
-
-        // Generate a QR code for the provided data
-        const generateQRCode = (data) => {
-            try {
-                // Try with a higher version (10) for more data capacity
-                const qr = qrcode(10, 'L'); // L = Low error correction (7%)
-                qr.addData(data);
-                qr.make();
-                return qr.createImgTag(5);
-            } catch (error) {
-                console.error("Failed with version 10, trying version 20:", error);
-                try {
-                    // Try with an even higher version
-                    const qr = qrcode(20, 'L');
-                    qr.addData(data);
-                    qr.make();
-                    return qr.createImgTag(4);
-                } catch (error2) {
-                    console.error("Failed with version 20, trying with version 40 and minimal size:", error2);
-                    try {
-                        // Maximum version with minimum size
-                        const qr = qrcode(40, 'L');
-                        qr.addData(data);
-                        qr.make();
-                        return qr.createImgTag(2);
-                    } catch (error3) {
-                        console.error("Could not generate QR code with any version:", error3);
-                        throw new Error("Data too large for QR code");
-                    }
+                    // Don't store the image data in the database
+                    itemToSync.image = null;
+                    itemToSync.hasImage = true;
+                } else if (item.image) {
+                    // It's already a URL, just set hasImage flag
+                    itemToSync.hasImage = true;
+                    itemToSync.image = null; // Don't store the URL in the database
+                } else {
+                    // No image
+                    itemToSync.hasImage = false;
+                    itemToSync.image = null;
                 }
+                
+                // Remove syncStatus from the data to save
+                delete itemToSync.syncStatus;
+                
+                // Handle different change types
+                if (changeType === 'delete') {
+                    // Delete the item
+                    await itemsRef.child(item.id).remove();
+                    
+                    // Delete the image if it exists
+                    if (item.hasImage) {
+                        try {
+                            await getStorageRef().child(`images/${item.id}`).delete();
+                        } catch (error) {
+                            console.warn(`Failed to delete image for item ${item.id}:`, error);
+                        }
+                    }
+                } else {
+                    // Add or update the item
+                    await itemsRef.child(item.id).set(itemToSync);
+                }
+                
+                // Update the sync status in local inventory
+                const itemIndex = inventory.findIndex(i => i.id === item.id);
+                if (itemIndex !== -1 && changeType !== 'delete') {
+                    inventory[itemIndex].syncStatus = 'synced';
+                }
+                
+                updateSyncStatus('online');
+                return true;
+            } catch (error) {
+                console.error('Error syncing item:', error);
+                
+                // Mark as pending
+                const itemIndex = inventory.findIndex(i => i.id === item.id);
+                if (itemIndex !== -1 && changeType !== 'delete') {
+                    inventory[itemIndex].syncStatus = 'error';
+                }
+                
+                updateSyncStatus('error');
+                return false;
             }
         };
-
-        // Show storage status to user
-        const showStorageStatus = (isAvailable, message = null) => {
-            const storageStatus = document.getElementById('storage-status');
+        
+        // Sync all pending changes
+        const syncPendingChanges = async () => {
+            if (!currentUser || !isOnline || pendingChanges.length === 0 || isSyncing) return;
             
-            if (isAvailable) {
-                storageStatus.classList.remove('bg-yellow-100', 'text-yellow-800', 'bg-red-100', 'text-red-800');
-                storageStatus.classList.add('bg-green-100', 'text-green-800');
-                storageStatus.innerHTML = `
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                    </svg>
-                    ${message || 'Data will be saved automatically'}
-                `;
-                
-                // If it's a temporary message, revert to default message after 2 seconds
-                if (message && message !== 'Data will be saved automatically') {
-                    setTimeout(() => {
-                        if (storageAvailable) {
-                            showStorageStatus(true);
-                        }
-                    }, 2000);
-                }
-            } else {
-                storageStatus.classList.remove('bg-green-100', 'text-green-800');
-                storageStatus.classList.add('bg-yellow-100', 'text-yellow-800');
-                storageStatus.innerHTML = `
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                    </svg>
-                    ${message || 'Storage unavailable - data will not be saved between sessions'}
-                `;
-                
-                if (message && message.includes('quota')) {
-                    storageStatus.classList.remove('bg-yellow-100', 'text-yellow-800');
-                    storageStatus.classList.add('bg-red-100', 'text-red-800');
+            isSyncing = true;
+            updateSyncStatus('syncing');
+            
+            // Create a copy of pending changes since we'll be modifying the array
+            const changesToProcess = [...pendingChanges];
+            pendingChanges = [];
+            
+            for (const change of changesToProcess) {
+                try {
+                    const success = await syncItem(change.item, change.changeType);
+                    
+                    if (!success) {
+                        // Add back to pending changes
+                        pendingChanges.push(change);
+                    }
+                } catch (error) {
+                    console.error('Error processing pending change:', error);
+                    pendingChanges.push(change);
                 }
             }
+            
+            isSyncing = false;
+            
+            // Update sync status based on remaining pending changes
+            if (pendingChanges.length > 0) {
+                updateSyncStatus('error');
+                showToast(`${pendingChanges.length} changes failed to sync`, 'warning');
+            } else {
+                updateSyncStatus('online');
+                showToast('All changes synced successfully', 'success');
+            }
+            
+            updateInventoryDisplay();
         };
-
-        // Generate a unique ID
-        const generateId = () => {
-            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        
+        // Update sync status display
+        const updateSyncStatus = (status = null) => {
+            const syncStatus = document.getElementById('sync-status');
+            const syncText = document.getElementById('sync-text');
+            
+            if (!syncStatus || !syncText) return;
+            
+            // Determine status if not provided
+            if (status === null) {
+                if (!isOnline) {
+                    status = 'offline';
+                } else if (pendingChanges.length > 0) {
+                    status = 'pending';
+                } else if (currentUser) {
+                    status = 'online';
+                } else {
+                    status = 'offline';
+                }
+            }
+            
+            // Update display based on status
+            syncStatus.className = 'sync-status';
+            
+            switch (status) {
+                case 'online':
+                    syncStatus.classList.add('sync-online');
+                    syncText.textContent = 'Cloud Synced';
+                    syncStatus.innerHTML = `
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span id="sync-text">Cloud Synced</span>
+                    `;
+                    break;
+                case 'offline':
+                    syncStatus.classList.add('sync-offline');
+                    syncText.textContent = 'Offline';
+                    syncStatus.innerHTML = `
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" transform="rotate(180, 10, 10)"></path>
+                        </svg>
+                        <span id="sync-text">Offline</span>
+                    `;
+                    break;
+                case 'syncing':
+                    syncStatus.classList.add('sync-syncing');
+                    syncText.textContent = 'Syncing...';
+                    syncStatus.innerHTML = `
+                        <div class="loader mr-1"></div>
+                        <span id="sync-text">Syncing...</span>
+                    `;
+                    break;
+                case 'pending':
+                    syncStatus.classList.add('sync-syncing');
+                    syncText.textContent = `${pendingChanges.length} Pending`;
+                    syncStatus.innerHTML = `
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span id="sync-text">${pendingChanges.length} Pending</span>
+                    `;
+                    break;
+                case 'error':
+                    syncStatus.classList.add('sync-offline');
+                    syncText.textContent = 'Sync Error';
+                    syncStatus.innerHTML = `
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span id="sync-text">Sync Error</span>
+                    `;
+                    break;
+            }
         };
-
+        
+        // Convert data URL to Blob
+        const dataURLToBlob = (dataURL) => {
+            const parts = dataURL.split(';base64,');
+            const contentType = parts[0].split(':')[1];
+            const raw = window.atob(parts[1]);
+            const rawLength = raw.length;
+            const uInt8Array = new Uint8Array(rawLength);
+            
+            for (let i = 0; i < rawLength; ++i) {
+                uInt8Array[i] = raw.charCodeAt(i);
+            }
+            
+            return new Blob([uInt8Array], { type: contentType });
+        };
+        
         // Set up event listeners
         const setupEventListeners = () => {
             // Image preview
@@ -1471,14 +1279,15 @@
                         name,
                         quantity,
                         image: imageData,
-                        createdAt: new Date().toISOString()
+                        createdAt: new Date().toISOString(),
+                        syncStatus: 'pending'
                     };
                     
                     // Add to inventory
                     inventory.push(newItem);
                     
                     // Save to storage
-                    saveInventory();
+                    saveInventory(newItem, 'add');
                     
                     // Update display
                     updateInventoryDisplay();
@@ -1506,7 +1315,6 @@
             const importDataBtn = document.getElementById('import-data');
             const importFileInput = document.getElementById('import-file');
             const clearDataBtn = document.getElementById('clear-data');
-            const shareDataBtn = document.getElementById('share-data');
             
             exportDataBtn?.addEventListener('click', exportInventory);
             importDataBtn?.addEventListener('click', () => importFileInput.click());
@@ -1518,14 +1326,11 @@
                     clearInventory
                 );
             });
-            shareDataBtn?.addEventListener('click', shareData);
             
             // Get Started options
-            const inputCodeOption = document.getElementById('option-input-code');
             const addItemsOption = document.getElementById('option-add-items');
             const demoDataOption = document.getElementById('option-demo-data');
             
-            inputCodeOption?.addEventListener('click', showInputCodeModal);
             addItemsOption?.addEventListener('click', () => {
                 // Scroll to add item form
                 const addItemForm = document.getElementById('add-item-form');
@@ -1537,7 +1342,7 @@
             });
             demoDataOption?.addEventListener('click', loadDemoData);
         };
-
+        
         // Process image - resize and compress for storage efficiency
         const processImage = (file) => {
             return new Promise((resolve, reject) => {
@@ -1584,8 +1389,8 @@
                         
                         // Check final size
                         const approximateSize = Math.round((dataUrl.length * 3) / 4) - 
-                                              (dataUrl.indexOf(',') + 1);
-                                              
+                                            (dataUrl.indexOf(',') + 1);
+                                            
                         if (approximateSize > 1024 * 1024) { // > 1MB
                             showToast('Image compressed but still large. Storage may be limited.', 'warning');
                         }
@@ -1607,13 +1412,14 @@
                 reader.readAsDataURL(file);
             });
         };
-
+        
         // Update item quantity
         const updateItemQuantity = (id, change) => {
             const index = inventory.findIndex(item => item.id === id);
             if (index !== -1) {
                 const newQuantity = Math.max(0, inventory[index].quantity + change);
                 inventory[index].quantity = newQuantity;
+                inventory[index].syncStatus = 'pending';
                 
                 // Update display
                 const quantityElement = document.querySelector(`#item-${id} .item-quantity`);
@@ -1633,22 +1439,24 @@
                 }
                 
                 // Save changes to storage
-                saveInventory();
+                saveInventory(inventory[index], 'update');
             }
         };
-
+        
         // Delete item
         const deleteItem = (id) => {
             const index = inventory.findIndex(item => item.id === id);
             if (index !== -1) {
+                const itemToDelete = { ...inventory[index] };
                 inventory.splice(index, 1);
+                
                 // Save changes to storage
-                saveInventory();
+                saveInventory(itemToDelete, 'delete');
                 updateInventoryDisplay();
                 showToast('Item deleted', 'info');
             }
         };
-
+        
         // Update inventory display
         const updateInventoryDisplay = () => {
             const inventoryGrid = document.getElementById('inventory-grid');
@@ -1691,11 +1499,42 @@
                         </svg>
                       </div>`;
                 
+                // Create sync status indicator
+                let syncIndicator = '';
+                if (item.syncStatus === 'pending') {
+                    syncIndicator = `
+                        <div class="sync-indicator sync-pending" title="Waiting to sync">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    `;
+                } else if (item.syncStatus === 'error') {
+                    syncIndicator = `
+                        <div class="sync-indicator sync-error" title="Sync failed">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                    `;
+                } else {
+                    syncIndicator = `
+                        <div class="sync-indicator sync-success" title="Synced to cloud">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                    `;
+                }
+                
                 itemElement.innerHTML = `
                     ${imageHtml}
                     <div class="p-4">
                         <div class="flex justify-between items-start mb-2">
-                            <h3 class="text-lg font-semibold">${item.name}</h3>
+                            <h3 class="text-lg font-semibold flex items-center">
+                                ${item.name}
+                                ${syncIndicator}
+                            </h3>
                             <button class="delete-btn text-red-500 hover:text-red-700 transition" data-id="${item.id}">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -1757,7 +1596,45 @@
                 });
             });
         };
-
+        
+        // Load demo data
+        const loadDemoData = () => {
+            const demoInventory = DEMO_INVENTORY.map(item => ({
+                ...item,
+                id: `demo_${generateId()}`
+            }));
+            
+            if (inventory.length > 0) {
+                showConfirmModal(
+                    'Load Demo Data',
+                    'This will add demo items to your existing inventory. Continue?',
+                    () => {
+                        // Add demo items
+                        inventory = [...inventory, ...demoInventory];
+                        
+                        // Save each demo item
+                        demoInventory.forEach(item => {
+                            saveInventory(item, 'add');
+                        });
+                        
+                        updateInventoryDisplay();
+                        showToast('Demo data loaded successfully', 'success');
+                    }
+                );
+            } else {
+                // Add demo items
+                inventory = [...demoInventory];
+                
+                // Save each demo item
+                demoInventory.forEach(item => {
+                    saveInventory(item, 'add');
+                });
+                
+                updateInventoryDisplay();
+                showToast('Demo data loaded successfully', 'success');
+            }
+        };
+        
         // Show toast notification
         const showToast = (message, type = 'info') => {
             // Remove existing toast if present
@@ -1812,7 +1689,7 @@
                 }, 300);
             }, 3000);
         };
-
+        
         // Show confirmation modal
         const showConfirmModal = (title, message, onConfirm) => {
             // Create modal overlay
@@ -1860,7 +1737,7 @@
                 onConfirm();
             });
         };
-
+        
         // Export inventory
         const exportInventory = () => {
             if (inventory.length === 0) {
@@ -1890,9 +1767,9 @@
                 showToast('Error exporting inventory data', 'error');
             }
         };
-
+        
         // Import inventory
-        const importInventory = (event) => {
+        const importInventory = async (event) => {
             const file = event.target.files[0];
             if (!file) return;
             
@@ -1909,19 +1786,27 @@
                     showConfirmModal(
                         'Import Inventory',
                         `This will add ${importedData.length} items to your inventory. Continue?`,
-                        () => {
+                        async () => {
                             // Add imported items
-                            importedData.forEach(item => {
+                            for (const item of importedData) {
                                 // Ensure each item has the required fields
-                                if (!item.id) item.id = generateId();
-                                if (!item.createdAt) item.createdAt = new Date().toISOString();
+                                const newItem = {
+                                    id: item.id || generateId(),
+                                    name: item.name,
+                                    quantity: item.quantity || 0,
+                                    image: item.image || null,
+                                    createdAt: item.createdAt || new Date().toISOString(),
+                                    syncStatus: 'pending'
+                                };
                                 
                                 // Add to inventory
-                                inventory.push(item);
-                            });
+                                inventory.push(newItem);
+                                
+                                // Save to cloud
+                                await saveInventory(newItem, 'add');
+                            }
                             
-                            // Save and update
-                            saveInventory();
+                            // Update display
                             updateInventoryDisplay();
                             
                             showToast(`Imported ${importedData.length} items successfully`, 'success');
@@ -1942,14 +1827,60 @@
             // Reset the file input so the same file can be selected again
             event.target.value = '';
         };
-
+        
         // Clear inventory
-        const clearInventory = () => {
-            inventory = [];
-            saveInventory();
-            updateInventoryDisplay();
-            showToast('All inventory data cleared', 'info');
+        const clearInventory = async () => {
+            if (!currentUser) {
+                inventory = [];
+                saveToLocalStorage();
+                updateInventoryDisplay();
+                showToast('All inventory data cleared locally', 'info');
+                return;
+            }
+            
+            try {
+                updateSyncStatus('syncing');
+                
+                // Clear from cloud
+                await getItemsRef().remove();
+                
+                // Try to delete all images
+                for (const item of inventory) {
+                    if (item.hasImage) {
+                        try {
+                            await getStorageRef().child(`images/${item.id}`).delete();
+                        } catch (error) {
+                            console.warn(`Failed to delete image for item ${item.id}:`, error);
+                        }
+                    }
+                }
+                
+                // Clear local inventory
+                inventory = [];
+                pendingChanges = [];
+                saveToLocalStorage();
+                updateInventoryDisplay();
+                
+                updateSyncStatus('online');
+                showToast('All inventory data cleared', 'info');
+            } catch (error) {
+                console.error('Error clearing inventory:', error);
+                showToast('Error clearing inventory data', 'error');
+                updateSyncStatus('error');
+            }
         };
+        
+        // Generate a unique ID
+        const generateId = () => {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        };
+        
+        // Periodic sync check
+        setInterval(() => {
+            if (isOnline && pendingChanges.length > 0 && currentUser && !isSyncing) {
+                syncPendingChanges();
+            }
+        }, 30000); // Check every 30 seconds
     </script>
 </body>
 </html>
