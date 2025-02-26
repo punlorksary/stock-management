@@ -350,6 +350,40 @@
             font-family: monospace;
             font-size: 0.875rem;
         }
+        
+        /* Get started section */
+        .get-started-option {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .get-started-option:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(93, 92, 222, 0.05);
+        }
+        
+        .get-started-option svg {
+            width: 2rem;
+            height: 2rem;
+            color: var(--primary-color);
+            margin-right: 1rem;
+        }
+        
+        .get-started-option-content h3 {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .get-started-option-content p {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
     </style>
 </head>
 <body>
@@ -452,7 +486,42 @@
                 <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                 </svg>
-                <p class="mt-4 text-gray-500 dark:text-gray-400">Your inventory is empty. Add items to get started.</p>
+                <p class="mt-4 text-gray-500 dark:text-gray-400">Your inventory is empty.</p>
+                
+                <!-- Get Started Section -->
+                <div class="mt-8 max-w-md mx-auto">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Get Started</h3>
+                    
+                    <div class="get-started-option" id="option-input-code">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.875 14.25l1.214 1.942a2.25 2.25 0 001.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 011.872 1.002l.164.246a2.25 2.25 0 001.872 1.002h2.092a2.25 2.25 0 001.872-1.002l.164-.246A2.25 2.25 0 0116.954 9h4.636M2.41 9a2.25 2.25 0 00-.16.832V12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 12V9.832c0-.287-.055-.57-.16-.832M2.41 9a2.25 2.25 0 01.382-.632l3.285-3.832a2.25 2.25 0 011.708-.786h8.43c.657 0 1.281.287 1.709.786l3.284 3.832c.163.19.291.404.382.632M4.5 20.25h15A2.25 2.25 0 0021.75 18v-2.625c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125V18a2.25 2.25 0 002.25 2.25z" />
+                        </svg>
+                        <div class="get-started-option-content">
+                            <h3>Import Existing Inventory</h3>
+                            <p>Enter a text code or scan a QR code from another device</p>
+                        </div>
+                    </div>
+                    
+                    <div class="get-started-option" id="option-add-items">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        <div class="get-started-option-content">
+                            <h3>Add Items Manually</h3>
+                            <p>Start by adding new items to your inventory</p>
+                        </div>
+                    </div>
+                    
+                    <div class="get-started-option" id="option-demo-data">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                        </svg>
+                        <div class="get-started-option-content">
+                            <h3>Load Demo Data</h3>
+                            <p>Try out the app with sample inventory items</p>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div id="inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -516,6 +585,52 @@
         const MAX_IMAGE_DIMENSION = 800; // Maximum width or height for images
         const STORAGE_KEY = 'stockInventory';
         const MAX_RETRIES = 3; // Maximum number of API call retries
+
+        // Demo data
+        const DEMO_INVENTORY = [
+            {
+                id: 'demo1',
+                name: 'Notebook A5',
+                quantity: 15,
+                createdAt: new Date().toISOString(),
+                image: null
+            },
+            {
+                id: 'demo2',
+                name: 'Blue Pens (Box)',
+                quantity: 8,
+                createdAt: new Date().toISOString(),
+                image: null
+            },
+            {
+                id: 'demo3',
+                name: 'Desk Lamp',
+                quantity: 3,
+                createdAt: new Date().toISOString(),
+                image: null
+            },
+            {
+                id: 'demo4',
+                name: 'USB Cable',
+                quantity: 12,
+                createdAt: new Date().toISOString(),
+                image: null
+            },
+            {
+                id: 'demo5',
+                name: 'Coffee Mug',
+                quantity: 5,
+                createdAt: new Date().toISOString(),
+                image: null
+            },
+            {
+                id: 'demo6',
+                name: 'Wireless Mouse',
+                quantity: 2,
+                createdAt: new Date().toISOString(),
+                image: null
+            }
+        ];
 
         // State
         let inventory = [];
@@ -688,6 +803,272 @@
                         showStorageStatus(false, 'Error saving data');
                     }
                 }
+            }
+        };
+
+        // Show input code modal
+        const showInputCodeModal = () => {
+            // Create modal overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            
+            overlay.innerHTML = `
+                <div class="modal-content">
+                    <h3 class="text-xl font-semibold mb-2">Import Inventory Data</h3>
+                    <p class="mb-4">Paste a text code or scan a QR code to import inventory data:</p>
+                    
+                    <div class="tab-container">
+                        <div class="tab active" data-tab="text">Text Code</div>
+                        <div class="tab" data-tab="qr">QR Code</div>
+                    </div>
+                    
+                    <div class="tab-content active" data-tab="text">
+                        <p class="text-sm mb-2">Paste the text code from another device:</p>
+                        <textarea id="import-data-input" class="data-input" placeholder="Paste the code here..."></textarea>
+                        <button id="import-data-btn" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition w-full">
+                            Import Data
+                        </button>
+                    </div>
+                    
+                    <div class="tab-content" data-tab="qr">
+                        <p class="text-sm mb-2">Scan a QR code using your device's camera:</p>
+                        <p class="text-sm text-gray-500 mb-4">Note: You'll need to give camera permission to your browser.</p>
+                        
+                        <div class="text-center">
+                            <button id="start-scan-btn" class="px-4 py-2 bg-[var(--primary-color)] text-white rounded hover:bg-[#4b4abf] transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Start Camera Scan
+                            </button>
+                        </div>
+                        
+                        <div id="qr-reader-container" class="mt-4 hidden">
+                            <div id="qr-reader" class="border rounded-lg overflow-hidden"></div>
+                            <p id="qr-error" class="text-red-500 text-sm mt-2 hidden">Error accessing camera. Please check permissions.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end mt-4">
+                        <button id="modal-close" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Add to DOM
+            document.body.appendChild(overlay);
+            
+            // Trigger animation
+            setTimeout(() => {
+                overlay.classList.add('show');
+            }, 10);
+            
+            // Set up tab functionality
+            const tabs = overlay.querySelectorAll('.tab');
+            const tabContents = overlay.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.getAttribute('data-tab');
+                    
+                    // Update active tab
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Update active content
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.getAttribute('data-tab') === tabName) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+            
+            // Set up event listeners
+            const closeBtn = overlay.querySelector('#modal-close');
+            const importDataBtn = overlay.querySelector('#import-data-btn');
+            const startScanBtn = overlay.querySelector('#start-scan-btn');
+            
+            const closeModal = () => {
+                overlay.classList.remove('show');
+                setTimeout(() => {
+                    overlay.remove();
+                }, 300);
+            };
+            
+            closeBtn.addEventListener('click', closeModal);
+            
+            importDataBtn.addEventListener('click', () => {
+                const importText = overlay.querySelector('#import-data-input').value.trim();
+                if (!importText) {
+                    showToast('Please paste a valid data code', 'warning');
+                    return;
+                }
+                
+                try {
+                    // Decompress the data
+                    const decompressedData = LZString.decompressFromBase64(importText);
+                    const importedData = JSON.parse(decompressedData);
+                    
+                    if (!Array.isArray(importedData)) {
+                        throw new Error('Invalid inventory data format');
+                    }
+                    
+                    // Add imported items
+                    let newItemCount = 0;
+                    importedData.forEach(importedItem => {
+                        // Check if item already exists (by ID)
+                        const existingItemIndex = inventory.findIndex(item => item.id === importedItem.id);
+                        
+                        if (existingItemIndex === -1) {
+                            // New item
+                            inventory.push({
+                                ...importedItem,
+                                // Make sure it has required fields
+                                id: importedItem.id || generateId(),
+                                createdAt: importedItem.createdAt || new Date().toISOString()
+                            });
+                            newItemCount++;
+                        } else {
+                            // Update existing item (quantity only)
+                            inventory[existingItemIndex].quantity = importedItem.quantity;
+                        }
+                    });
+                    
+                    // Save and update
+                    saveInventory();
+                    updateInventoryDisplay();
+                    
+                    closeModal();
+                    showToast(`Imported ${newItemCount} new items successfully`, 'success');
+                } catch (error) {
+                    console.error('Import error:', error);
+                    showToast('Error importing data: Invalid or corrupted code', 'error');
+                }
+            });
+            
+            // QR code scanning logic
+            startScanBtn.addEventListener('click', () => {
+                const qrReaderContainer = document.getElementById('qr-reader-container');
+                const qrReader = document.getElementById('qr-reader');
+                const qrError = document.getElementById('qr-error');
+                
+                qrReaderContainer.classList.remove('hidden');
+                qrError.classList.add('hidden');
+                
+                // Load HTML5 QR code scanner dynamically
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+                script.onload = function() {
+                    // Initialize QR code scanner
+                    const html5QrCode = new Html5Qrcode("qr-reader");
+                    const qrCodeSuccessCallback = (decodedText) => {
+                        // Stop scanner
+                        html5QrCode.stop().then(() => {
+                            console.log('Scanner stopped successfully');
+                            
+                            try {
+                                // Decompress the data
+                                const decompressedData = LZString.decompressFromBase64(decodedText);
+                                const importedData = JSON.parse(decompressedData);
+                                
+                                if (!Array.isArray(importedData)) {
+                                    throw new Error('Invalid inventory data format');
+                                }
+                                
+                                // Add imported items
+                                let newItemCount = 0;
+                                importedData.forEach(importedItem => {
+                                    // Check if item already exists (by ID)
+                                    const existingItemIndex = inventory.findIndex(item => item.id === importedItem.id);
+                                    
+                                    if (existingItemIndex === -1) {
+                                        // New item
+                                        inventory.push({
+                                            ...importedItem,
+                                            // Make sure it has required fields
+                                            id: importedItem.id || generateId(),
+                                            createdAt: importedItem.createdAt || new Date().toISOString()
+                                        });
+                                        newItemCount++;
+                                    } else {
+                                        // Update existing item (quantity only)
+                                        inventory[existingItemIndex].quantity = importedItem.quantity;
+                                    }
+                                });
+                                
+                                // Save and update
+                                saveInventory();
+                                updateInventoryDisplay();
+                                
+                                closeModal();
+                                showToast(`Imported ${newItemCount} new items successfully`, 'success');
+                            } catch (error) {
+                                console.error('Import error:', error);
+                                showToast('Error importing data: Invalid QR code', 'error');
+                            }
+                        }).catch((err) => {
+                            console.error('Error stopping scanner:', err);
+                        });
+                    };
+                    
+                    const qrScannerConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
+                    
+                    // Start scanner
+                    html5QrCode.start(
+                        { facingMode: "environment" },
+                        qrScannerConfig,
+                        qrCodeSuccessCallback,
+                        (errorMessage) => {
+                            // Error callback is continuous, so we don't need to do anything here
+                        }
+                    ).catch((err) => {
+                        console.error(`Error starting QR Code scanner: ${err}`);
+                        qrError.classList.remove('hidden');
+                        qrError.textContent = 'Error accessing camera. Please check permissions.';
+                    });
+                    
+                    // Update close modal function to stop scanner when modal is closed
+                    const originalCloseModal = closeModal;
+                    closeModal = () => {
+                        html5QrCode.stop().catch(err => console.error(err));
+                        originalCloseModal();
+                    };
+                };
+                
+                script.onerror = function() {
+                    qrError.classList.remove('hidden');
+                    qrError.textContent = 'Error loading QR code scanner. Please try again.';
+                };
+                
+                document.body.appendChild(script);
+            });
+        };
+
+        // Load demo data
+        const loadDemoData = () => {
+            if (inventory.length > 0) {
+                showConfirmModal(
+                    'Load Demo Data',
+                    'This will add demo items to your existing inventory. Continue?',
+                    () => {
+                        // Add demo items
+                        inventory = [...inventory, ...DEMO_INVENTORY];
+                        saveInventory();
+                        updateInventoryDisplay();
+                        showToast('Demo data loaded successfully', 'success');
+                    }
+                );
+            } else {
+                // Add demo items
+                inventory = [...DEMO_INVENTORY];
+                saveInventory();
+                updateInventoryDisplay();
+                showToast('Demo data loaded successfully', 'success');
             }
         };
 
@@ -1138,6 +1519,23 @@
                 );
             });
             shareDataBtn?.addEventListener('click', shareData);
+            
+            // Get Started options
+            const inputCodeOption = document.getElementById('option-input-code');
+            const addItemsOption = document.getElementById('option-add-items');
+            const demoDataOption = document.getElementById('option-demo-data');
+            
+            inputCodeOption?.addEventListener('click', showInputCodeModal);
+            addItemsOption?.addEventListener('click', () => {
+                // Scroll to add item form
+                const addItemForm = document.getElementById('add-item-form');
+                const nameInput = document.getElementById('item-name');
+                addItemForm.scrollIntoView({ behavior: 'smooth' });
+                setTimeout(() => {
+                    nameInput.focus();
+                }, 500);
+            });
+            demoDataOption?.addEventListener('click', loadDemoData);
         };
 
         // Process image - resize and compress for storage efficiency
