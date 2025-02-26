@@ -448,9 +448,8 @@
         const MAX_RETRIES = 3; // Maximum number of API call retries
         const SYNC_INTERVAL = 60000; // Sync every minute
 
-        // Database endpoint from jsonbin.io
-        const JSON_BIN_API_URL = 'https://api.jsonbin.io/v3/b';
-        const JSON_BIN_API_KEY = '$2a$10$TfUZnxs6TS5CQgtGJz0XWOFTpvj8bV8.UB2HVkMBNT23X.5e18l2q'; // Read/write API key
+        // Using Firebase Realtime Database REST API for cloud storage
+        const FIREBASE_DB_URL = "https://stock-management-app-a4c11-default-rtdb.firebaseio.com/inventory";
 
         // State
         let inventory = [];
@@ -615,8 +614,16 @@
                     
                     // If response is not ok, throw an error
                     if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+                        let errorMessage = `HTTP error! Status: ${response.status}`;
+                        try {
+                            const errorData = await response.json();
+                            if (errorData && errorData.error) {
+                                errorMessage = errorData.error;
+                            }
+                        } catch (e) {
+                            // If we can't parse the error as JSON, just use the default message
+                        }
+                        throw new Error(errorMessage);
                     }
                     
                     // Return the successful response
@@ -773,19 +780,34 @@
                     updateSyncStatus('syncing');
                 }
                 
-                // Make a JSONBIN API call to update the data
-                const response = await fetchWithRetry(`${JSON_BIN_API_URL}/${syncConfig.binId}`, {
+                // Format inventory for cloud storage - strip out large images
+                const cloudInventory = inventory.map(item => {
+                    // Clone the item
+                    const cloudItem = { ...item };
+                    
+                    // If there's an image and it's large, replace it with a placeholder
+                    if (cloudItem.image && cloudItem.image.length > 1000) {
+                        cloudItem.image = "IMAGE_DATA_STORED_LOCALLY";
+                    }
+                    
+                    return cloudItem;
+                });
+                
+                // Create the URL with the sync ID
+                const syncUrl = `${FIREBASE_DB_URL}/${syncConfig.syncId}.json`;
+                
+                // Make a Firebase REST API call to update the data
+                const response = await fetchWithRetry(syncUrl, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': JSON_BIN_API_KEY
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(inventory)
+                    body: JSON.stringify(cloudInventory)
                 });
                 
                 const data = await response.json();
                 
-                if (data.record) {
+                if (data) {
                     lastSyncTime = new Date();
                     updateSyncStatus('online');
                     
@@ -794,7 +816,7 @@
                     }
                     return true;
                 } else {
-                    throw new Error(data.message || 'Unknown error');
+                    throw new Error('Unknown error occurred during sync');
                 }
             } catch (error) {
                 console.error('Cloud sync failed:', error);
@@ -816,19 +838,38 @@
             try {
                 updateSyncStatus('syncing');
                 
-                // Make a JSONBIN API call to get the data
-                const response = await fetchWithRetry(`${JSON_BIN_API_URL}/${syncConfig.binId}`, {
-                    method: 'GET',
-                    headers: {
-                        'X-Master-Key': JSON_BIN_API_KEY
-                    }
+                // Create the URL with the sync ID
+                const syncUrl = `${FIREBASE_DB_URL}/${syncConfig.syncId}.json`;
+                
+                // Make a Firebase REST API call to get the data
+                const response = await fetchWithRetry(syncUrl, {
+                    method: 'GET'
                 });
                 
-                const data = await response.json();
+                const cloudInventory = await response.json();
                 
-                if (data.record) {
-                    // Update local inventory with cloud data
-                    inventory = data.record;
+                if (cloudInventory) {
+                    // Merge cloud inventory with local inventory
+                    // This preserves local image data that was stripped for cloud storage
+                    const mergedInventory = cloudInventory.map(cloudItem => {
+                        // If the cloud item has a placeholder for image data, try to find the local version
+                        if (cloudItem.image === "IMAGE_DATA_STORED_LOCALLY") {
+                            // Look for this item in the local inventory
+                            const localItem = inventory.find(item => item.id === cloudItem.id);
+                            if (localItem && localItem.image) {
+                                // Use the local image data
+                                cloudItem.image = localItem.image;
+                            } else {
+                                // If local image not found, use null
+                                cloudItem.image = null;
+                            }
+                        }
+                        
+                        return cloudItem;
+                    });
+                    
+                    // Update local inventory with merged data
+                    inventory = mergedInventory;
                     
                     // Save to local storage
                     if (storageAvailable) {
@@ -844,7 +885,7 @@
                     showToast('Data loaded from cloud successfully', 'success');
                     return true;
                 } else {
-                    throw new Error(data.message || 'Unknown error');
+                    throw new Error('No data found in cloud storage');
                 }
             } catch (error) {
                 console.error('Cloud fetch failed:', error);
@@ -854,26 +895,44 @@
             }
         };
 
-        // Create a new cloud bin
-        const createNewBin = async () => {
+        // Create a new cloud sync
+        const createNewSync = async () => {
             try {
                 updateSyncStatus('syncing');
                 
-                // Make a JSONBIN API call to create a new bin
-                const response = await fetchWithRetry(JSON_BIN_API_URL, {
-                    method: 'POST',
+                // Generate a unique sync ID
+                const syncId = generateId();
+                
+                // Format inventory for cloud storage - strip out large images
+                const cloudInventory = inventory.map(item => {
+                    // Clone the item
+                    const cloudItem = { ...item };
+                    
+                    // If there's an image and it's large, replace it with a placeholder
+                    if (cloudItem.image && cloudItem.image.length > 1000) {
+                        cloudItem.image = "IMAGE_DATA_STORED_LOCALLY";
+                    }
+                    
+                    return cloudItem;
+                });
+                
+                // Create the URL with the sync ID
+                const syncUrl = `${FIREBASE_DB_URL}/${syncId}.json`;
+                
+                // Make a Firebase REST API call to create the data
+                const response = await fetchWithRetry(syncUrl, {
+                    method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': JSON_BIN_API_KEY
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(inventory.length > 0 ? inventory : [])
+                    body: JSON.stringify(inventory.length > 0 ? cloudInventory : [])
                 });
                 
                 const data = await response.json();
                 
-                if (data.metadata && data.metadata.id) {
+                if (data !== null) {
                     const newConfig = {
-                        binId: data.metadata.id,
+                        syncId: syncId,
                         createdAt: new Date().toISOString()
                     };
                     
@@ -885,10 +944,10 @@
                     showToast('New cloud sync created successfully', 'success');
                     return newConfig;
                 } else {
-                    throw new Error(data.message || 'Unknown error');
+                    throw new Error('Failed to create cloud storage');
                 }
             } catch (error) {
-                console.error('Cloud bin creation failed:', error);
+                console.error('Cloud sync creation failed:', error);
                 updateSyncStatus('offline', 'Setup Error');
                 showToast(`Cloud setup failed: ${error.message}`, 'error');
                 return null;
@@ -901,7 +960,7 @@
             const overlay = document.createElement('div');
             overlay.className = 'modal-overlay';
             
-            const currentId = syncConfig ? syncConfig.binId : '';
+            const currentId = syncConfig ? syncConfig.syncId : '';
             
             overlay.innerHTML = `
                 <div class="modal-content">
@@ -924,8 +983,8 @@
                         </div>
                         
                         <div class="mb-4">
-                            <label for="existing-bin-id" class="block mb-2 text-sm font-medium">Join with existing Sync ID (optional):</label>
-                            <input type="text" id="existing-bin-id" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter existing Sync ID">
+                            <label for="existing-sync-id" class="block mb-2 text-sm font-medium">Join with existing Sync ID (optional):</label>
+                            <input type="text" id="existing-sync-id" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter existing Sync ID">
                             <p class="text-xs mt-1 text-gray-500">Leave empty to create a new sync.</p>
                         </div>
                     </div>
@@ -952,7 +1011,7 @@
             // Set up event listeners
             const cancelBtn = document.getElementById('modal-cancel');
             const confirmBtn = document.getElementById('modal-confirm');
-            const existingBinIdInput = document.getElementById('existing-bin-id');
+            const existingSyncIdInput = document.getElementById('existing-sync-id');
             
             const closeModal = () => {
                 overlay.classList.remove('show');
@@ -964,12 +1023,12 @@
             cancelBtn.addEventListener('click', closeModal);
             
             confirmBtn.addEventListener('click', async () => {
-                const existingBinId = existingBinIdInput.value.trim();
+                const existingSyncId = existingSyncIdInput.value.trim();
                 
-                if (existingBinId) {
+                if (existingSyncId) {
                     // Join existing sync
                     saveSyncConfig({
-                        binId: existingBinId,
+                        syncId: existingSyncId,
                         createdAt: new Date().toISOString()
                     });
                     
@@ -980,7 +1039,7 @@
                     }
                 } else {
                     // Create new sync
-                    await createNewBin();
+                    await createNewSync();
                 }
                 
                 closeModal();
