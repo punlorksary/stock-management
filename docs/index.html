@@ -1,151 +1,1559 @@
----
-layout: default
----
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A lightweight, browser-based inventory management system for tracking stock items with names, quantities, and images.">
+    <title>Stock Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.8.0/flowbite.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.8.0/flowbite.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #5D5CDE;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #181818;
+                --text-color: #ffffff;
+                --card-bg: #2d2d2d;
+                --input-bg: #3d3d3d;
+            }
+        }
+        
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-color: #ffffff;
+                --text-color: #333333;
+                --card-bg: #f5f5f5;
+                --input-bg: #ffffff;
+            }
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        
+        .item-card {
+            background-color: var(--card-bg);
+        }
+        
+        .custom-file-upload {
+            display: inline-block;
+            padding: 8px 16px;
+            cursor: pointer;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 0.375rem;
+            transition: background-color 0.3s;
+        }
+        
+        .custom-file-upload:hover {
+            background-color: #4b4abf;
+        }
+        
+        /* Highlighted Add Item button */
+        #add-item-form button[type="submit"] {
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #4b4abf;
+            transition: all 0.3s ease;
+            transform: translateY(0);
+            box-shadow: 0 4px 6px rgba(93, 92, 222, 0.25);
+        }
+        
+        #add-item-form button[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(93, 92, 222, 0.3);
+        }
+        
+        #add-item-form button[type="submit"]::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            bottom: -50%;
+            left: -50%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.1) 100%);
+            transform: rotateZ(60deg) translate(-5em, 7.5em);
+            animation: shine 3s infinite;
+        }
+        
+        @keyframes shine {
+            0% {
+                transform: rotateZ(60deg) translate(-5em, 7.5em);
+            }
+            100% {
+                transform: rotateZ(60deg) translate(1em, -9em);
+            }
+        }
+        
+        .loader {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid var(--primary-color);
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .image-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e2e2e2;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .image-preview {
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Animation for new items */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .new-item {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        /* Animation for quantity change */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .quantity-changed {
+            animation: pulse 0.3s ease-out;
+            color: var(--primary-color);
+        }
+        
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .toast-success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .toast-error {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+        
+        .toast-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .toast-info {
+            background-color: #e0f7ff;
+            color: #0369a1;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background-color: var(--bg-color);
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            max-width: 500px;
+            width: 90%;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+        
+        .action-button-container {
+            background-color: var(--card-bg);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            margin-top: 16px;
+            border-radius: 0 0 8px 8px;
+        }
 
-<div class="container mx-auto px-4 py-8 max-w-5xl">
-    <h1 class="text-3xl font-bold mb-8 text-center">Stock Management</h1>
-    
-    <!-- Add Item Form -->
-    <div class="mb-8 p-6 rounded-lg shadow-md item-card">
-        <h2 class="text-xl font-semibold mb-4">Add New Item</h2>
-        <form id="add-item-form" class="space-y-4">
-            <div class="grid md:grid-cols-2 gap-4">
-                <div>
-                    <label for="item-name" class="block mb-2 text-sm font-medium">Item Name</label>
-                    <input type="text" id="item-name" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter item name" required>
+        /* Cloud sync indicator */
+        .sync-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .sync-online {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .sync-offline {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .sync-syncing {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Sync setup modal */
+        .sync-setup-container {
+            margin-top: 16px;
+        }
+
+        .sync-setup-container input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .sync-id-display {
+            background-color: #f1f5f9;
+            padding: 8px;
+            border-radius: 6px;
+            font-family: monospace;
+            margin-bottom: 12px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <h1 class="text-3xl font-bold mb-2 text-center">Stock Management</h1>
+        <div class="flex justify-center items-center mb-6">
+            <div id="sync-status" class="sync-status sync-offline">
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" transform="rotate(180, 10, 10)"></path>
+                </svg>
+                Offline
+            </div>
+        </div>
+        
+        <!-- Add Item Form -->
+        <div class="mb-8 p-6 rounded-lg shadow-md item-card">
+            <h2 class="text-xl font-semibold mb-4">Add New Item</h2>
+            <form id="add-item-form" class="space-y-4">
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="item-name" class="block mb-2 text-sm font-medium">Item Name</label>
+                        <input type="text" id="item-name" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter item name" required>
+                    </div>
+                    
+                    <div>
+                        <label for="item-quantity" class="block mb-2 text-sm font-medium">Quantity</label>
+                        <input type="number" id="item-quantity" min="0" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter quantity" required>
+                    </div>
                 </div>
                 
                 <div>
-                    <label for="item-quantity" class="block mb-2 text-sm font-medium">Quantity</label>
-                    <input type="number" id="item-quantity" min="0" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter quantity" required>
+                    <label class="block mb-2 text-sm font-medium">Item Image</label>
+                    <div class="flex items-center space-x-4">
+                        <div id="image-preview-container" class="h-24 w-24 rounded-lg overflow-hidden image-placeholder">
+                            <span>Preview</span>
+                        </div>
+                        <div>
+                            <label for="item-image" class="custom-file-upload">
+                                <svg class="w-4 h-4 inline-block mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+                                </svg>
+                                Upload Image
+                            </label>
+                            <input type="file" id="item-image" accept="image/*">
+                            <p class="text-xs mt-1 text-gray-500 dark:text-gray-400">Optional. PNG, JPG or GIF</p>
+                            <p id="image-size-warning" class="text-xs mt-1 text-red-500 hidden">Warning: Large images may cause storage issues</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            
+                
+                <div class="action-button-container bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mt-6">
+                    <button type="submit" class="w-full px-5 py-3 text-base font-medium text-center text-white bg-[var(--primary-color)] rounded-lg hover:bg-[#4b4abf] focus:ring-4 focus:outline-none focus:ring-blue-300 transition flex items-center justify-center">
+                        <span id="loading-indicator" class="hidden">
+                            <span class="loader"></span>
+                        </span>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Add Item to Inventory
+                    </button>
+                    <div class="mt-2 text-sm text-center text-gray-500">Fill out the form above and click this button to add a new item</div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Storage Info -->
+        <div id="storage-info" class="mb-4 p-4 rounded-lg bg-blue-50 text-blue-800 flex items-center hidden">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1v-3a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
             <div>
-                <label class="block mb-2 text-sm font-medium">Item Image</label>
-                <div class="flex items-center space-x-4">
-                    <div id="image-preview-container" class="h-24 w-24 rounded-lg overflow-hidden image-placeholder">
-                        <span>Preview</span>
+                <span class="font-medium">Storage Information:</span>
+                <div class="text-sm mt-1">
+                    <div>Used: <span id="storage-used">0 KB</span> of <span id="storage-quota">5 MB</span></div>
+                    <div class="w-full bg-blue-200 rounded-full h-2 mt-1">
+                        <div id="storage-bar" class="bg-blue-800 h-2 rounded-full" style="width: 0%"></div>
                     </div>
-                    <div>
-                        <label for="item-image" class="custom-file-upload">
-                            <svg class="w-4 h-4 inline-block mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
-                            </svg>
-                            Upload Image
-                        </label>
-                        <input type="file" id="item-image" accept="image/*">
-                        <p class="text-xs mt-1 text-gray-500 dark:text-gray-400">Optional. PNG, JPG or GIF</p>
-                        <p id="image-size-warning" class="text-xs mt-1 text-red-500 hidden">Warning: Large images may cause storage issues</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="action-button-container bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mt-6">
-                <button type="submit" class="w-full px-5 py-3 text-base font-medium text-center text-white bg-[var(--primary-color)] rounded-lg hover:bg-[#4b4abf] focus:ring-4 focus:outline-none focus:ring-blue-300 transition flex items-center justify-center">
-                    <span id="loading-indicator" class="hidden">
-                        <span class="loader"></span>
-                    </span>
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                    </svg>
-                    Add Item to Inventory
-                </button>
-                <div class="mt-2 text-sm text-center text-gray-500">Fill out the form above and click this button to add a new item</div>
-            </div>
-        </form>
-    </div>
-    
-    <!-- Storage Info -->
-    <div id="storage-info" class="mb-4 p-4 rounded-lg bg-blue-50 text-blue-800 flex items-center hidden">
-        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1v-3a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-        </svg>
-        <div>
-            <span class="font-medium">Storage Information:</span>
-            <div class="text-sm mt-1">
-                <div>Used: <span id="storage-used">0 KB</span> of <span id="storage-quota">5 MB</span></div>
-                <div class="w-full bg-blue-200 rounded-full h-2 mt-1">
-                    <div id="storage-bar" class="bg-blue-800 h-2 rounded-full" style="width: 0%"></div>
                 </div>
             </div>
         </div>
+        
+        <!-- Inventory Display -->
+        <div class="mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
+                <h2 class="text-xl font-semibold">Current Inventory</h2>
+                <div class="flex flex-col md:flex-row items-start md:items-center gap-2">
+                    <div id="storage-status" class="text-xs font-medium px-3 py-1 bg-yellow-100 text-yellow-800 rounded-md flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        Checking storage...
+                    </div>
+                    <div id="item-count" class="text-sm font-medium px-3 py-1 bg-[var(--primary-color)] text-white rounded-full">
+                        0 items
+                    </div>
+                </div>
+            </div>
+            
+            <div id="no-items-message" class="text-center py-8 item-card rounded-lg">
+                <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                </svg>
+                <p class="mt-4 text-gray-500 dark:text-gray-400">Your inventory is empty. Add items to get started.</p>
+            </div>
+            
+            <div id="inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Items will be added here dynamically -->
+            </div>
+        </div>
+        
+        <!-- Tools -->
+        <div class="mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Tools</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <button id="export-data" class="p-4 rounded-lg shadow-md bg-green-100 text-green-800 hover:bg-green-200 transition flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                    Export Data
+                </button>
+                
+                <div class="relative">
+                    <input type="file" id="import-file" class="hidden" accept=".json">
+                    <button id="import-data" class="p-4 w-full rounded-lg shadow-md bg-blue-100 text-blue-800 hover:bg-blue-200 transition flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" transform="rotate(180, 10, 10)"></path>
+                        </svg>
+                        Import Data
+                    </button>
+                </div>
+                
+                <button id="sync-setup" class="p-4 rounded-lg shadow-md bg-purple-100 text-purple-800 hover:bg-purple-200 transition flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" clip-rule="evenodd"></path>
+                    </svg>
+                    Cloud Sync Setup
+                </button>
+                
+                <button id="clear-data" class="p-4 rounded-lg shadow-md bg-red-100 text-red-800 hover:bg-red-200 transition flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    Clear All Data
+                </button>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 text-sm mt-8 pb-6">
+            <p>Stock Management App &copy; 2023</p>
+            <p class="mt-1">
+                <a href="https://github.com/yourusername/stock-management" target="_blank" class="text-[var(--primary-color)] hover:underline">View on GitHub</a>
+            </p>
+        </footer>
     </div>
-    
-    <!-- Inventory Display -->
-    <div class="mb-8">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
-            <h2 class="text-xl font-semibold">Current Inventory</h2>
-            <div class="flex flex-col md:flex-row items-start md:items-center gap-2">
-                <div id="storage-status" class="text-xs font-medium px-3 py-1 bg-yellow-100 text-yellow-800 rounded-md flex items-center">
+
+    <script>
+        // Constants
+        const MAX_LOCALSTORAGE_SIZE = 5 * 1024 * 1024; // 5MB approximate limit
+        const IMAGE_QUALITY = 0.7; // JPEG compression quality
+        const MAX_IMAGE_DIMENSION = 800; // Maximum width or height for images
+        const STORAGE_KEY = 'stockInventory';
+        const SYNC_KEY = 'syncConfig';
+        const MAX_RETRIES = 3; // Maximum number of API call retries
+        const SYNC_INTERVAL = 60000; // Sync every minute
+
+        // Database endpoint from jsonbin.io
+        const JSON_BIN_API_URL = 'https://api.jsonbin.io/v3/b';
+        const JSON_BIN_API_KEY = '$2a$10$TfUZnxs6TS5CQgtGJz0XWOFTpvj8bV8.UB2HVkMBNT23X.5e18l2q'; // Read/write API key
+
+        // State
+        let inventory = [];
+        let storageAvailable = false;
+        let syncConfig = null;
+        let toastTimeout = null;
+        let syncInterval = null;
+        let lastSyncTime = null;
+        let isFirstSync = true;
+
+        // DOM Elements
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize the app
+            loadSyncConfig();
+            loadInventory();
+            setupEventListeners();
+            updateStorageInfo();
+            startSyncInterval();
+        });
+
+        // Load sync configuration
+        const loadSyncConfig = () => {
+            if (!storageAvailable) return;
+
+            try {
+                const storedConfig = localStorage.getItem(SYNC_KEY);
+                if (storedConfig) {
+                    syncConfig = JSON.parse(storedConfig);
+                    updateSyncStatus('online');
+                }
+            } catch (error) {
+                console.error('Error loading sync config:', error);
+                syncConfig = null;
+                updateSyncStatus('offline');
+            }
+        };
+
+        // Save sync configuration
+        const saveSyncConfig = (config) => {
+            if (!storageAvailable) return;
+
+            try {
+                syncConfig = config;
+                localStorage.setItem(SYNC_KEY, JSON.stringify(config));
+                updateSyncStatus('online');
+            } catch (error) {
+                console.error('Error saving sync config:', error);
+                showToast('Error saving sync configuration', 'error');
+            }
+        };
+
+        // Start automatic sync interval
+        const startSyncInterval = () => {
+            if (syncInterval) {
+                clearInterval(syncInterval);
+            }
+
+            // Perform initial sync
+            if (syncConfig) {
+                syncWithCloud(true);
+            }
+
+            // Set up interval for periodic syncing
+            syncInterval = setInterval(() => {
+                if (syncConfig) {
+                    syncWithCloud(true);
+                }
+            }, SYNC_INTERVAL);
+        };
+
+        // Update sync status indicator
+        const updateSyncStatus = (status, message = null) => {
+            const syncStatusElement = document.getElementById('sync-status');
+            
+            if (!syncStatusElement) return;
+
+            syncStatusElement.className = 'sync-status';
+            
+            switch (status) {
+                case 'online':
+                    syncStatusElement.classList.add('sync-online');
+                    syncStatusElement.innerHTML = `
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        ${message || 'Cloud Sync Enabled'}
+                    `;
+                    break;
+                case 'offline':
+                    syncStatusElement.classList.add('sync-offline');
+                    syncStatusElement.innerHTML = `
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" transform="rotate(180, 10, 10)"></path>
+                        </svg>
+                        ${message || 'Offline'}
+                    `;
+                    break;
+                case 'syncing':
+                    syncStatusElement.classList.add('sync-syncing');
+                    syncStatusElement.innerHTML = `
+                        <div class="loader mr-1"></div>
+                        Syncing...
+                    `;
+                    break;
+                default:
+                    syncStatusElement.classList.add('sync-offline');
+                    syncStatusElement.innerHTML = `
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        ${message || 'Sync Error'}
+                    `;
+            }
+
+            // Update last sync time if available and not initial load
+            if (lastSyncTime && status === 'online' && !isFirstSync) {
+                const timeAgo = getTimeAgo(lastSyncTime);
+                syncStatusElement.title = `Last synced: ${timeAgo}`;
+                
+                // Add small text with last sync time
+                const timeIndicator = document.createElement('span');
+                timeIndicator.className = 'text-xs ml-1 opacity-70';
+                timeIndicator.textContent = `(${timeAgo})`;
+                syncStatusElement.appendChild(timeIndicator);
+            }
+            
+            isFirstSync = false;
+        };
+
+        // Format time ago
+        const getTimeAgo = (timestamp) => {
+            const seconds = Math.floor((new Date() - new Date(timestamp)) / 1000);
+            
+            let interval = Math.floor(seconds / 31536000);
+            if (interval > 1) return interval + ' years ago';
+            
+            interval = Math.floor(seconds / 2592000);
+            if (interval > 1) return interval + ' months ago';
+            
+            interval = Math.floor(seconds / 86400);
+            if (interval > 1) return interval + ' days ago';
+            
+            interval = Math.floor(seconds / 3600);
+            if (interval > 1) return interval + ' hours ago';
+            
+            interval = Math.floor(seconds / 60);
+            if (interval > 1) return interval + ' minutes ago';
+            
+            if (seconds < 10) return 'just now';
+            
+            return Math.floor(seconds) + ' seconds ago';
+        };
+
+        // Fetch with retry functionality
+        const fetchWithRetry = async (url, options = {}, maxRetries = MAX_RETRIES) => {
+            let lastError = null;
+            
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    // Attempt the fetch request
+                    const response = await fetch(url, options);
+                    
+                    // If response is not ok, throw an error
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+                    }
+                    
+                    // Return the successful response
+                    return response;
+                } catch (error) {
+                    console.warn(`Attempt ${attempt + 1} failed: ${error.message}`);
+                    lastError = error;
+                    
+                    // Calculate exponential backoff delay: 2^attempt * 100ms
+                    const delay = Math.min(Math.pow(2, attempt) * 100, 2000);
+                    
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+            
+            // If all retries failed, throw the last error
+            throw new Error(`Failed after ${maxRetries} attempts: ${lastError ? lastError.message : 'Unknown error'}`);
+        };
+
+        // Check if storage is available
+        const checkStorageAvailability = () => {
+            try {
+                const testKey = '__storage_test__';
+                localStorage.setItem(testKey, testKey);
+                localStorage.removeItem(testKey);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        };
+
+        // Get storage usage information
+        const getStorageInfo = () => {
+            if (!storageAvailable) return { used: 0, quota: 0, percentage: 0 };
+            
+            let used = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                used += (key.length + value.length) * 2; // UTF-16 characters are 2 bytes each
+            }
+            
+            return {
+                used,
+                quota: MAX_LOCALSTORAGE_SIZE,
+                percentage: (used / MAX_LOCALSTORAGE_SIZE) * 100
+            };
+        };
+
+        // Update storage info display
+        const updateStorageInfo = () => {
+            const storageInfo = document.getElementById('storage-info');
+            const storageUsed = document.getElementById('storage-used');
+            const storageQuota = document.getElementById('storage-quota');
+            const storageBar = document.getElementById('storage-bar');
+            
+            if (!storageAvailable) {
+                storageInfo.classList.add('hidden');
+                return;
+            }
+            
+            const info = getStorageInfo();
+            
+            // Format sizes for display
+            const usedFormatted = info.used < 1024 ? 
+                `${info.used} B` : 
+                info.used < 1024 * 1024 ? 
+                    `${(info.used / 1024).toFixed(1)} KB` : 
+                    `${(info.used / (1024 * 1024)).toFixed(1)} MB`;
+                    
+            const quotaFormatted = `${(info.quota / (1024 * 1024)).toFixed(0)} MB`;
+            
+            // Update display
+            storageUsed.textContent = usedFormatted;
+            storageQuota.textContent = quotaFormatted;
+            storageBar.style.width = `${Math.min(info.percentage, 100)}%`;
+            
+            // Set bar color based on usage
+            if (info.percentage > 90) {
+                storageBar.classList.remove('bg-blue-800', 'bg-yellow-500');
+                storageBar.classList.add('bg-red-600');
+            } else if (info.percentage > 70) {
+                storageBar.classList.remove('bg-blue-800', 'bg-red-600');
+                storageBar.classList.add('bg-yellow-500');
+            } else {
+                storageBar.classList.remove('bg-yellow-500', 'bg-red-600');
+                storageBar.classList.add('bg-blue-800');
+            }
+            
+            // Show storage info
+            storageInfo.classList.remove('hidden');
+            
+            // Show warning if close to limit
+            if (info.percentage > 85) {
+                showToast('Warning: Running low on storage space. Consider exporting and clearing data.', 'warning');
+            }
+        };
+
+        // Load inventory from storage
+        const loadInventory = () => {
+            storageAvailable = checkStorageAvailability();
+            
+            if (storageAvailable) {
+                try {
+                    const storedInventory = localStorage.getItem(STORAGE_KEY);
+                    if (storedInventory) {
+                        inventory = JSON.parse(storedInventory);
+                    }
+                    showStorageStatus(true);
+                } catch (error) {
+                    console.error('Error loading from storage:', error);
+                    showStorageStatus(false, 'Error loading data');
+                }
+            } else {
+                showStorageStatus(false);
+            }
+            
+            updateInventoryDisplay();
+        };
+
+        // Save inventory to storage
+        const saveInventory = () => {
+            if (storageAvailable) {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
+                    showStorageStatus(true, 'Data saved');
+                    updateStorageInfo();
+                    
+                    // If sync is configured, sync with cloud
+                    if (syncConfig) {
+                        syncWithCloud();
+                    }
+                } catch (error) {
+                    console.error('Error saving to storage:', error);
+                    if (error.name === 'QuotaExceededError' || error.code === 22) {
+                        showStorageStatus(false, 'Storage quota exceeded');
+                        showToast('Storage quota exceeded. Try removing some items or images.', 'error');
+                    } else {
+                        showStorageStatus(false, 'Error saving data');
+                    }
+                }
+            }
+        };
+
+        // Cloud sync functionality
+        const syncWithCloud = async (silent = false) => {
+            if (!syncConfig) {
+                return;
+            }
+
+            try {
+                if (!silent) {
+                    updateSyncStatus('syncing');
+                }
+                
+                // Make a JSONBIN API call to update the data
+                const response = await fetchWithRetry(`${JSON_BIN_API_URL}/${syncConfig.binId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': JSON_BIN_API_KEY
+                    },
+                    body: JSON.stringify(inventory)
+                });
+                
+                const data = await response.json();
+                
+                if (data.record) {
+                    lastSyncTime = new Date();
+                    updateSyncStatus('online');
+                    
+                    if (!silent) {
+                        showToast('Data synced successfully', 'success');
+                    }
+                    return true;
+                } else {
+                    throw new Error(data.message || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Cloud sync failed:', error);
+                updateSyncStatus('offline', 'Sync Error');
+                
+                if (!silent) {
+                    showToast(`Cloud sync failed: ${error.message}`, 'error');
+                }
+                return false;
+            }
+        };
+
+        // Fetch data from cloud
+        const fetchFromCloud = async () => {
+            if (!syncConfig) {
+                return false;
+            }
+
+            try {
+                updateSyncStatus('syncing');
+                
+                // Make a JSONBIN API call to get the data
+                const response = await fetchWithRetry(`${JSON_BIN_API_URL}/${syncConfig.binId}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': JSON_BIN_API_KEY
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.record) {
+                    // Update local inventory with cloud data
+                    inventory = data.record;
+                    
+                    // Save to local storage
+                    if (storageAvailable) {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
+                    }
+                    
+                    // Update display
+                    updateInventoryDisplay();
+                    updateStorageInfo();
+                    
+                    lastSyncTime = new Date();
+                    updateSyncStatus('online');
+                    showToast('Data loaded from cloud successfully', 'success');
+                    return true;
+                } else {
+                    throw new Error(data.message || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Cloud fetch failed:', error);
+                updateSyncStatus('offline', 'Sync Error');
+                showToast(`Cloud data fetch failed: ${error.message}`, 'error');
+                return false;
+            }
+        };
+
+        // Create a new cloud bin
+        const createNewBin = async () => {
+            try {
+                updateSyncStatus('syncing');
+                
+                // Make a JSONBIN API call to create a new bin
+                const response = await fetchWithRetry(JSON_BIN_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': JSON_BIN_API_KEY
+                    },
+                    body: JSON.stringify(inventory.length > 0 ? inventory : [])
+                });
+                
+                const data = await response.json();
+                
+                if (data.metadata && data.metadata.id) {
+                    const newConfig = {
+                        binId: data.metadata.id,
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    // Save the new sync config
+                    saveSyncConfig(newConfig);
+                    
+                    lastSyncTime = new Date();
+                    updateSyncStatus('online');
+                    showToast('New cloud sync created successfully', 'success');
+                    return newConfig;
+                } else {
+                    throw new Error(data.message || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Cloud bin creation failed:', error);
+                updateSyncStatus('offline', 'Setup Error');
+                showToast(`Cloud setup failed: ${error.message}`, 'error');
+                return null;
+            }
+        };
+
+        // Show sync setup modal
+        const showSyncSetupModal = () => {
+            // Create modal overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            
+            const currentId = syncConfig ? syncConfig.binId : '';
+            
+            overlay.innerHTML = `
+                <div class="modal-content">
+                    <h3 class="text-xl font-semibold mb-2">Cloud Sync Setup</h3>
+                    <p class="mb-4">Set up cloud synchronization to access your inventory across multiple devices.</p>
+                    
+                    <div class="sync-setup-container">
+                        ${currentId ? `
+                            <p class="mb-2 font-medium">Your current sync ID:</p>
+                            <div class="sync-id-display">${currentId}</div>
+                            <p class="mb-4 text-sm text-gray-500">Share this ID with other devices to access the same inventory.</p>
+                        ` : ''}
+                        
+                        <div class="bg-blue-50 p-3 rounded-lg mb-4">
+                            <p class="text-sm text-blue-800">
+                                <strong>Options:</strong>
+                                <br>1. Create a new sync (for first device)
+                                <br>2. Join existing sync (for additional devices)
+                            </p>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="existing-bin-id" class="block mb-2 text-sm font-medium">Join with existing Sync ID (optional):</label>
+                            <input type="text" id="existing-bin-id" class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-3" placeholder="Enter existing Sync ID">
+                            <p class="text-xs mt-1 text-gray-500">Leave empty to create a new sync.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button id="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition">
+                            Cancel
+                        </button>
+                        <button id="modal-confirm" class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition">
+                            ${currentId ? 'Update Sync' : 'Set Up Sync'}
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Add to DOM
+            document.body.appendChild(overlay);
+            
+            // Trigger animation
+            setTimeout(() => {
+                overlay.classList.add('show');
+            }, 10);
+            
+            // Set up event listeners
+            const cancelBtn = document.getElementById('modal-cancel');
+            const confirmBtn = document.getElementById('modal-confirm');
+            const existingBinIdInput = document.getElementById('existing-bin-id');
+            
+            const closeModal = () => {
+                overlay.classList.remove('show');
+                setTimeout(() => {
+                    overlay.remove();
+                }, 300);
+            };
+            
+            cancelBtn.addEventListener('click', closeModal);
+            
+            confirmBtn.addEventListener('click', async () => {
+                const existingBinId = existingBinIdInput.value.trim();
+                
+                if (existingBinId) {
+                    // Join existing sync
+                    saveSyncConfig({
+                        binId: existingBinId,
+                        createdAt: new Date().toISOString()
+                    });
+                    
+                    // Fetch data from the cloud
+                    const success = await fetchFromCloud();
+                    if (success) {
+                        showToast('Joined existing sync successfully', 'success');
+                    }
+                } else {
+                    // Create new sync
+                    await createNewBin();
+                }
+                
+                closeModal();
+            });
+        };
+
+        // Show storage status to user
+        const showStorageStatus = (isAvailable, message = null) => {
+            const storageStatus = document.getElementById('storage-status');
+            
+            if (isAvailable) {
+                storageStatus.classList.remove('bg-yellow-100', 'text-yellow-800', 'bg-red-100', 'text-red-800');
+                storageStatus.classList.add('bg-green-100', 'text-green-800');
+                storageStatus.innerHTML = `
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    ${message || 'Data will be saved automatically'}
+                `;
+                
+                // If it's a temporary message, revert to default message after 2 seconds
+                if (message && message !== 'Data will be saved automatically') {
+                    setTimeout(() => {
+                        if (storageAvailable) {
+                            showStorageStatus(true);
+                        }
+                    }, 2000);
+                }
+            } else {
+                storageStatus.classList.remove('bg-green-100', 'text-green-800');
+                storageStatus.classList.add('bg-yellow-100', 'text-yellow-800');
+                storageStatus.innerHTML = `
                     <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                     </svg>
-                    Checking storage...
+                    ${message || 'Storage unavailable - data will not be saved between sessions'}
+                `;
+                
+                if (message && message.includes('quota')) {
+                    storageStatus.classList.remove('bg-yellow-100', 'text-yellow-800');
+                    storageStatus.classList.add('bg-red-100', 'text-red-800');
+                }
+            }
+        };
+
+        // Generate a unique ID
+        const generateId = () => {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        };
+
+        // Set up event listeners
+        const setupEventListeners = () => {
+            // Image preview
+            const imageInput = document.getElementById('item-image');
+            const previewContainer = document.getElementById('image-preview-container');
+            const imageSizeWarning = document.getElementById('image-size-warning');
+            
+            imageInput?.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) {
+                    previewContainer.innerHTML = '<span>Preview</span>';
+                    previewContainer.classList.add('image-placeholder');
+                    imageSizeWarning.classList.add('hidden');
+                    return;
+                }
+                
+                // Check file size
+                if (file.size > 2 * 1024 * 1024) { // 2MB
+                    imageSizeWarning.classList.remove('hidden');
+                } else {
+                    imageSizeWarning.classList.add('hidden');
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    previewContainer.classList.remove('image-placeholder');
+                    previewContainer.innerHTML = `<img src="${event.target.result}" class="image-preview" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            // Add new item
+            const addItemForm = document.getElementById('add-item-form');
+            
+            addItemForm?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const nameInput = document.getElementById('item-name');
+                const quantityInput = document.getElementById('item-quantity');
+                const imageInput = document.getElementById('item-image');
+                
+                const name = nameInput.value.trim();
+                const quantity = parseInt(quantityInput.value, 10);
+                
+                if (!name || isNaN(quantity)) {
+                    return;
+                }
+                
+                // Show loading state
+                const loadingIndicator = document.getElementById('loading-indicator');
+                loadingIndicator.classList.remove('hidden');
+                
+                // Process image
+                processImage(imageInput.files[0]).then(imageData => {
+                    // Create new item
+                    const newItem = {
+                        id: generateId(),
+                        name,
+                        quantity,
+                        image: imageData,
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    // Add to inventory
+                    inventory.push(newItem);
+                    
+                    // Save to storage
+                    saveInventory();
+                    
+                    // Update display
+                    updateInventoryDisplay();
+                    
+                    // Reset form
+                    addItemForm.reset();
+                    previewContainer.innerHTML = '<span>Preview</span>';
+                    previewContainer.classList.add('image-placeholder');
+                    imageSizeWarning.classList.add('hidden');
+                    
+                    // Hide loading state
+                    loadingIndicator.classList.add('hidden');
+                    
+                    // Show success toast
+                    showToast('Item added successfully', 'success');
+                }).catch(error => {
+                    console.error('Error processing image:', error);
+                    loadingIndicator.classList.add('hidden');
+                    showToast('Error adding item: ' + error.message, 'error');
+                });
+            });
+            
+            // Tool buttons
+            const exportDataBtn = document.getElementById('export-data');
+            const importDataBtn = document.getElementById('import-data');
+            const importFileInput = document.getElementById('import-file');
+            const clearDataBtn = document.getElementById('clear-data');
+            const syncSetupBtn = document.getElementById('sync-setup');
+            
+            exportDataBtn?.addEventListener('click', exportInventory);
+            importDataBtn?.addEventListener('click', () => importFileInput.click());
+            importFileInput?.addEventListener('change', importInventory);
+            clearDataBtn?.addEventListener('click', () => {
+                showConfirmModal(
+                    'Clear All Data',
+                    'Are you sure you want to delete all inventory data? This action cannot be undone.',
+                    clearInventory
+                );
+            });
+            
+            syncSetupBtn?.addEventListener('click', showSyncSetupModal);
+        };
+
+        // Process image - resize and compress for storage efficiency
+        const processImage = (file) => {
+            return new Promise((resolve, reject) => {
+                if (!file) {
+                    resolve(null);
+                    return;
+                }
+                
+                // Check if it's an image
+                if (!file.type.startsWith('image/')) {
+                    reject(new Error('Please select a valid image file'));
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Determine if resizing is needed
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+                            if (width > height) {
+                                height = Math.round((height * MAX_IMAGE_DIMENSION) / width);
+                                width = MAX_IMAGE_DIMENSION;
+                            } else {
+                                width = Math.round((width * MAX_IMAGE_DIMENSION) / height);
+                                height = MAX_IMAGE_DIMENSION;
+                            }
+                        }
+                        
+                        // Create canvas for resizing
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        // Draw and compress
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Convert to JPEG for better compression
+                        const dataUrl = canvas.toDataURL('image/jpeg', IMAGE_QUALITY);
+                        
+                        // Check final size
+                        const approximateSize = Math.round((dataUrl.length * 3) / 4) - 
+                                              (dataUrl.indexOf(',') + 1);
+                                              
+                        if (approximateSize > 1024 * 1024) { // > 1MB
+                            showToast('Image compressed but still large. Storage may be limited.', 'warning');
+                        }
+                        
+                        resolve(dataUrl);
+                    };
+                    
+                    img.onerror = () => {
+                        reject(new Error('Error loading image'));
+                    };
+                    
+                    img.src = event.target.result;
+                };
+                
+                reader.onerror = () => {
+                    reject(new Error('Error reading file'));
+                };
+                
+                reader.readAsDataURL(file);
+            });
+        };
+
+        // Update item quantity
+        const updateItemQuantity = (id, change) => {
+            const index = inventory.findIndex(item => item.id === id);
+            if (index !== -1) {
+                const newQuantity = Math.max(0, inventory[index].quantity + change);
+                inventory[index].quantity = newQuantity;
+                
+                // Update display
+                const quantityElement = document.querySelector(`#item-${id} .item-quantity`);
+                if (quantityElement) {
+                    quantityElement.textContent = newQuantity;
+                    quantityElement.classList.add('quantity-changed');
+                    setTimeout(() => {
+                        quantityElement.classList.remove('quantity-changed');
+                    }, 300);
+                }
+                
+                if (newQuantity === 0) {
+                    const itemElement = document.getElementById(`item-${id}`);
+                    if (itemElement) {
+                        itemElement.classList.add('bg-red-100', 'dark:bg-red-900', 'border-red-300');
+                    }
+                }
+                
+                // Save changes to storage
+                saveInventory();
+            }
+        };
+
+        // Delete item
+        const deleteItem = (id) => {
+            const index = inventory.findIndex(item => item.id === id);
+            if (index !== -1) {
+                inventory.splice(index, 1);
+                // Save changes to storage
+                saveInventory();
+                updateInventoryDisplay();
+                showToast('Item deleted', 'info');
+            }
+        };
+
+        // Update inventory display
+        const updateInventoryDisplay = () => {
+            const inventoryGrid = document.getElementById('inventory-grid');
+            const noItemsMessage = document.getElementById('no-items-message');
+            const itemCount = document.getElementById('item-count');
+            
+            if (!inventoryGrid || !noItemsMessage || !itemCount) return;
+            
+            // Update item count
+            itemCount.textContent = `${inventory.length} item${inventory.length !== 1 ? 's' : ''}`;
+            
+            // Show/hide no items message
+            if (inventory.length === 0) {
+                noItemsMessage.classList.remove('hidden');
+                inventoryGrid.innerHTML = '';
+                return;
+            } else {
+                noItemsMessage.classList.add('hidden');
+            }
+            
+            // Clear and rebuild inventory grid
+            inventoryGrid.innerHTML = '';
+            
+            // Sort inventory (newest first)
+            const sortedInventory = [...inventory].sort((a, b) => {
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            });
+            
+            // Add items to grid
+            sortedInventory.forEach(item => {
+                const itemElement = document.createElement('div');
+                itemElement.id = `item-${item.id}`;
+                itemElement.className = 'item-card rounded-lg shadow-md overflow-hidden new-item';
+                
+                const imageHtml = item.image 
+                    ? `<img src="${item.image}" alt="${item.name}" class="w-full h-40 object-cover">`
+                    : `<div class="w-full h-40 bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                      </div>`;
+                
+                itemElement.innerHTML = `
+                    ${imageHtml}
+                    <div class="p-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-lg font-semibold">${item.name}</h3>
+                            <button class="delete-btn text-red-500 hover:text-red-700 transition" data-id="${item.id}">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between mt-4">
+                            <div class="flex items-center">
+                                <button class="decrement-btn p-1 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition" data-id="${item.id}">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                    </svg>
+                                </button>
+                                <span class="item-quantity text-lg font-bold mx-3 min-w-[20px] text-center">${item.quantity}</span>
+                                <button class="increment-btn p-1 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition" data-id="${item.id}">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                                in stock
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                inventoryGrid.appendChild(itemElement);
+                
+                // Remove new-item class after animation completes
+                setTimeout(() => {
+                    itemElement.classList.remove('new-item');
+                }, 300);
+            });
+            
+            // Add event listeners for buttons
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    showConfirmModal(
+                        'Delete Item',
+                        'Are you sure you want to delete this item?',
+                        () => deleteItem(id)
+                    );
+                });
+            });
+            
+            document.querySelectorAll('.increment-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    updateItemQuantity(id, 1);
+                });
+            });
+            
+            document.querySelectorAll('.decrement-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    updateItemQuantity(id, -1);
+                });
+            });
+        };
+
+        // Show toast notification
+        const showToast = (message, type = 'info') => {
+            // Remove existing toast if present
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+            
+            // Clear timeout if exists
+            if (toastTimeout) {
+                clearTimeout(toastTimeout);
+            }
+            
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            // Icon based on type
+            let icon = '';
+            switch (type) {
+                case 'success':
+                    icon = '<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>';
+                    break;
+                case 'error':
+                    icon = '<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
+                    break;
+                case 'warning':
+                    icon = '<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>';
+                    break;
+                default:
+                    icon = '<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1v-3a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>';
+            }
+            
+            toast.innerHTML = `
+                ${icon}
+                <span>${message}</span>
+            `;
+            
+            // Add to DOM
+            document.body.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+            
+            // Remove after 3 seconds
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        };
+
+        // Show confirmation modal
+        const showConfirmModal = (title, message, onConfirm) => {
+            // Create modal overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            
+            overlay.innerHTML = `
+                <div class="modal-content">
+                    <h3 class="text-xl font-semibold mb-2">${title}</h3>
+                    <p class="mb-6">${message}</p>
+                    <div class="flex justify-end space-x-3">
+                        <button id="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition">
+                            Cancel
+                        </button>
+                        <button id="modal-confirm" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition">
+                            Confirm
+                        </button>
+                    </div>
                 </div>
-                <div id="item-count" class="text-sm font-medium px-3 py-1 bg-[var(--primary-color)] text-white rounded-full">
-                    0 items
-                </div>
-            </div>
-        </div>
-        
-        <div id="no-items-message" class="text-center py-8 item-card rounded-lg">
-            <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-            </svg>
-            <p class="mt-4 text-gray-500 dark:text-gray-400">Your inventory is empty. Add items to get started.</p>
-        </div>
-        
-        <div id="inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Items will be added here dynamically -->
-        </div>
-    </div>
-    
-    <!-- Tools -->
-    <div class="mb-8">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-semibold">Tools</h2>
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <button id="export-data" class="p-4 rounded-lg shadow-md bg-green-100 text-green-800 hover:bg-green-200 transition flex items-center justify-center">
-                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                </svg>
-                Export Data
-            </button>
+            `;
             
-            <div class="relative">
-                <input type="file" id="import-file" class="hidden" accept=".json">
-                <button id="import-data" class="p-4 w-full rounded-lg shadow-md bg-blue-100 text-blue-800 hover:bg-blue-200 transition flex items-center justify-center">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" transform="rotate(180, 10, 10)"></path>
-                    </svg>
-                    Import Data
-                </button>
-            </div>
+            // Add to DOM
+            document.body.appendChild(overlay);
             
-            <button id="sync-cloud" class="p-4 rounded-lg shadow-md bg-purple-100 text-purple-800 hover:bg-purple-200 transition flex items-center justify-center">
-                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" clip-rule="evenodd"></path>
-                </svg>
-                Sync With Cloud
-            </button>
+            // Trigger animation
+            setTimeout(() => {
+                overlay.classList.add('show');
+            }, 10);
             
-            <button id="clear-data" class="p-4 rounded-lg shadow-md bg-red-100 text-red-800 hover:bg-red-200 transition flex items-center justify-center">
-                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                </svg>
-                Clear All Data
-            </button>
-        </div>
-    </div>
-    
-    <!-- Footer -->
-    <footer class="text-center text-gray-500 text-sm mt-8 pb-6">
-        <p>Stock Management App &copy; 2023</p>
-        <p class="mt-1">
-            <a href="https://github.com/yourusername/stock-management" target="_blank" class="text-[var(--primary-color)] hover:underline">View on GitHub</a>
-        </p>
-    </footer>
-</div>
+            // Set up event listeners
+            const cancelBtn = document.getElementById('modal-cancel');
+            const confirmBtn = document.getElementById('modal-confirm');
+            
+            const closeModal = () => {
+                overlay.classList.remove('show');
+                setTimeout(() => {
+                    overlay.remove();
+                }, 300);
+            };
+            
+            cancelBtn.addEventListener('click', closeModal);
+            
+            confirmBtn.addEventListener('click', () => {
+                closeModal();
+                onConfirm();
+            });
+        };
+
+        // Export inventory
+        const exportInventory = () => {
+            if (inventory.length === 0) {
+                showToast('No inventory data to export', 'warning');
+                return;
+            }
+            
+            try {
+                const dataStr = JSON.stringify(inventory, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+                
+                const exportFileName = `inventory_export_${new Date().toISOString().split('T')[0]}.json`;
+                
+                // Create link and trigger download
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileName);
+                linkElement.style.display = 'none';
+                
+                document.body.appendChild(linkElement);
+                linkElement.click();
+                document.body.removeChild(linkElement);
+                
+                showToast('Inventory exported successfully', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Error exporting inventory data', 'error');
+            }
+        };
+
+        // Import inventory
+        const importInventory = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (!Array.isArray(importedData)) {
+                        throw new Error('Invalid inventory data format');
+                    }
+                    
+                    showConfirmModal(
+                        'Import Inventory',
+                        `This will add ${importedData.length} items to your inventory. Continue?`,
+                        () => {
+                            // Add imported items
+                            importedData.forEach(item => {
+                                // Ensure each item has the required fields
+                                if (!item.id) item.id = generateId();
+                                if (!item.createdAt) item.createdAt = new Date().toISOString();
+                                
+                                // Add to inventory
+                                inventory.push(item);
+                            });
+                            
+                            // Save and update
+                            saveInventory();
+                            updateInventoryDisplay();
+                            
+                            showToast(`Imported ${importedData.length} items successfully`, 'success');
+                        }
+                    );
+                } catch (error) {
+                    console.error('Import error:', error);
+                    showToast('Error importing inventory data: ' + error.message, 'error');
+                }
+            };
+            
+            reader.onerror = () => {
+                showToast('Error reading file', 'error');
+            };
+            
+            reader.readAsText(file);
+            
+            // Reset the file input so the same file can be selected again
+            event.target.value = '';
+        };
+
+        // Clear inventory
+        const clearInventory = () => {
+            inventory = [];
+            saveInventory();
+            updateInventoryDisplay();
+            showToast('All inventory data cleared', 'info');
+        };
+    </script>
+</body>
+</html>
